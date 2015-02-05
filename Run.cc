@@ -31,6 +31,17 @@ int main(int argc, char *argv[])
 							  "MinimumBias/CastorTree_data_MinBias_Commissioning10-May19ReReco-v1_7TeV_53XRECOwithCorrector_v3/97203ab154b3c9bdada743fe0880f7f7/",
 							  "CastorTree_data_MinBias_Commissioning10-May19ReReco-v1_7TeV_53XRECOwithCorrector_",true,"");
 			}
+
+                        if (strcmp(argv[3],"JetAnalyzer_radii") == 0) {
+                                std::cout << "We'll process the data with the JetAnalyzer" << std::endl;
+                                m->makeJetHistos_radii("dcap://maite.iihe.ac.be/pnfs/iihe/cms/store/user/avanspil/"
+							  "/MinimumBias/2015_01_CastorTree_data_MinBias_Commissioning10-May19ReReco-v1_7TeV_53XRECOwithCorrector_v1/032c1e3d0d409c6175040143a103f571/",
+                                                          "CastorTree_data_MinBias_Commissioning10-May19ReReco-v1_7TeV_53XRECOwithCorrector_",true,"",
+                                                          argv[4],
+                                                          argv[5],
+                                                          atoi(argv[6]),
+                                                          argv[7]);
+                        }
 		}	
 	}
 		
@@ -92,6 +103,7 @@ int main(int argc, char *argv[])
                                                           "CastorTree_MC_MinBias_TuneZ2star_7TeV_pythia6_LowPU2010_53XRECOwithCorrector_v3/45ff2e600e4cec01b439799f3c950bc6/",
                                                           "CastorTree_MC_7TeV_42X_53XRECOwithCorrector_",false,"Pythia6_Z2star_Default_varyR_");
                         }
+/*
                         else if(strcmp(argv[3],"SystematicsMin") == 0) {
                                 std::cout << "We'll process the Pythia6 Z2star 7TeV MC tree now with the minimum systematics" << std::endl;
                                 m->makeSysMinHistos("dcap://maite.iihe.ac.be/pnfs/iihe/cms/store/user/avanspil/"
@@ -106,6 +118,7 @@ int main(int argc, char *argv[])
                                                           "CastorTree_MC_MinBias_TuneZ2star_7TeV_pythia6_LowPU2010_53XRECOwithCorrector_v3/45ff2e600e4cec01b439799f3c950bc6/",
                                                           "CastorTree_MC_7TeV_42X_53XRECOwithCorrector_",false,"Pythia6_Z2star_Default_varyR_");
                         }
+ */  
                         if (strcmp(argv[3],"JetAnalyzer_radii") == 0) {
                                 std::cout << "We'll process the Pythia6 Z2star 7TeV MC tree now with the JetAnalyzer" << std::endl;
                                 m->makeJetHistos_radii("dcap://maite.iihe.ac.be/pnfs/iihe/cms/store/user/avanspil/"

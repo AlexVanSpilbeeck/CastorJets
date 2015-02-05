@@ -10,15 +10,15 @@ def replace_all(text, dic):
     return text
 
 nruns = 4
-nevents = 1000000000
-date = '20141215_03'
+nevents = 250000
+date = '20150205_no_gen_cut'
 
 os.system("make clean")
 #os.system('cd /scratch/; rm -rf CMSSW_4_2_10_patch2')
 
 
-gen_rad = [3, 5]
-det_rad = [3, 5, 7]
+gen_rad = [5, 5]
+det_rad = [5, 7]
 
 for gen in gen_rad:
     for det in det_rad:

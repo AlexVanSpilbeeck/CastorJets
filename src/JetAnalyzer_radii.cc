@@ -7,7 +7,7 @@
  This code looks at:
 	-> Gen Jets (-6.1 < eta < -5.7), E above Ethreshold, pT > 1 GeV
 	-> Castor Jets, E > 0 GeV, pT > 1 GeV
-	-> Gen jets are matched to closest detector level jet. 
+	-> Gen jets are matched to closest detector level jet in \Delta phi. 
 */
 
 #if !defined(__CINT__) || defined(__MAKECINT__)
@@ -33,6 +33,7 @@
 #include <TRandom3.h>
 #include <TThread.h>
 #include <TStopwatch.h>
+#include <TBranchElement.h>
 
 //STANDARD C++ INCLUDES
 #include <sstream>
@@ -71,7 +72,7 @@
 //using namespace fastjet;
 
 #define jetPtThreshold 35.
-#define jetEThreshold_gen 300. 
+#define jetEThreshold_gen 0. 
 #define jetEThreshold_det 0. 
 #define EbinWidth 5.
 #define EbinWidth_rel 1.4
@@ -134,7 +135,7 @@ void JetAnalyzer_radii::Loop() {
 	std::cout << " TString outputname_ = " << tstring << std::endl;
 	TString string_tag = jet_distance_string;
 	TString string_det_radius = det_radius_;
-        TString string_gen_radius = gen_radius_;
+        TString string_gen_radius;	if (!isData_){ string_gen_radius = gen_radius_; }
  
 	
     // reweight the MC in this case
@@ -229,7 +230,7 @@ cout << "Variable bins done" << endl;
 	
 	// Castor jet histograms
 //	TH1D *hCastorJet_energy = new TH1D("hCastorJet_energy","CastorJet energy distribution",Ebins, Emin, Emax);
-        TH1D *hCastorJet_energy = new TH1D("hCastorJet_energy","CastorJet energy distribution",Ebins-1, Ebins_var);
+        TH1D *hCastorJet_energy = new TH1D("hCastorJet_energy","CastorJet energy distribution",200.,100.,3000.);
         TH1D *hGenJet_energy = new TH1D("hGenJet_energy","GenJet energy distribution",Ebins, Emin, Emax);
 	TH1D *hCastorJet_pt = new TH1D("hCastorJet_pt","CastorJet pt distribution",30,0,30);
 	TH1D *hCastorJet_em = new TH1D("hCastorJet_em","CastorJet EM energy distribution",150,0,1500);
@@ -271,6 +272,14 @@ cout << "Variable bins done" << endl;
 //        TH2D *hCastorJet_Matrix = new TH2D("hCastorJet_responseMatrix", "Castor jet Response Matrix",Ebins+10,Emin-10*EbinWidth,Emax,Ebins+10,Emin-10*EbinWidth,Emax);
         TH2D *hCastorJet_Matrix = new TH2D("hCastorJet_responseMatrix", "Castor jet Response Matrix",Ebins-1, Ebins_var,Ebins-1, Ebins_var);
 
+	  TH2D *hCastorJet_Matrix_had_pi = new TH2D("hCastorJet_responseMatrix_had_pi", "Castor jet Response Matrix (had-had)"	,Ebins_fix, Emin_fix, Emax_fix, Ebins_fix, Emin_fix, Emax_fix);
+          TH2D *hCastorJet_Matrix_had_e = new TH2D("hCastorJet_responseMatrix_had_e", 	"Castor jet Response Matrix (had-em)"	,Ebins_fix, Emin_fix, Emax_fix, Ebins_fix, Emin_fix, Emax_fix);
+          TH2D *hCastorJet_Matrix_em_pi = new TH2D("hCastorJet_responseMatrix_em_pi", 	"Castor jet Response Matrix (em-had)"	,Ebins_fix, Emin_fix, Emax_fix, Ebins_fix, Emin_fix, Emax_fix);
+          TH2D *hCastorJet_Matrix_em_e 	= new TH2D("hCastorJet_responseMatrix_em_e", 	"Castor jet Response Matrix (em-em)"	,Ebins_fix, Emin_fix, Emax_fix, Ebins_fix, Emin_fix, Emax_fix);
+//          TH2D *hCastorJet_Matrix_had_pi = new TH2D("hCastorJet_responseMatrix_had_pi", "Castor jet Response Matrix (had-had)",Ebins-1, Ebins_var,Ebins-1, Ebins_var);
+//          TH2D *hCastorJet_Matrix_had_pi = new TH2D("hCastorJet_responseMatrix_had_pi", "Castor jet Response Matrix (had-had)",Ebins-1, Ebins_var,Ebins-1, Ebins_var);
+
+
 	// Number of trackjets.
 	TH2D *hTrackjets_2D_number = new TH2D("hTrackjets_2D_number", "Trackjets vs. Charged Gen Jet", 17,0.,17., 17,0.,17.);
         TH2D *hTrackjets_2D_pt = new TH2D("hTrackjets_2D_pt", "Trackjets vs. Charged Gen Jet", 30,0.,30., 30,0.,30.);
@@ -280,11 +289,31 @@ cout << "Variable bins done" << endl;
 
 	// Efficiency control.
 	TH1D *hJER = new TH1D("hJER", "Jet Energy Resolution", 200, -5, 5);
-        TH2D *hJER_per_energy = new TH2D("hJER_per_energy", "Jet Energy Resolution for fixed energies;E_{gen};JER", 	200.,100.,3000.,  
+        TH2D *hJER_per_energy = new TH2D("hJER_per_energy", "#DeltaE/E for fixed energies;E_{gen};JER", 	200.,100.,3000., 200, -5, 5);
+	     TH2D *hJER_per_energy_had_pi = new TH2D("hJER_per_energy_had_pi", "#DeltaE/E for fixed energies;E_{gen};JER",     200.,100.,3000., 200, -5, 5);
+             TH2D *hJER_per_energy_had_e  = new TH2D("hJER_per_energy_had_e",  "#DeltaE/E for fixed energies;E_{gen};JER",     200.,100.,3000., 200, -5, 5);
+             TH2D *hJER_per_energy_em_pi  = new TH2D("hJER_per_energy_em_pi",  "#DeltaE/E for fixed energies;E_{gen};JER",     200.,100.,3000., 200, -5, 5);
+             TH2D *hJER_per_energy_em_e	  = new TH2D("hJER_per_energy_em_e",   "#DeltaE/E for fixed energies;E_{gen};JER",     200.,100.,3000., 200, -5, 5);
+
+	     TH2D *hJER_per_energy_had_det= new TH2D("hJER_per_energy_had_det", "#DeltaE/E for fixed energies;E_{gen};JER",   200.,100.,3000., 200, -5, 5);
+             TH2D *hJER_per_energy_em_det= new TH2D("hJER_per_energy_em_det", "#DeltaE/E for fixed energies;E_{gen};JER",   200.,100.,3000., 200, -5, 5);
+             TH2D *hJER_per_energy_none_det= new TH2D("hJER_per_energy_none_det", "#DeltaE/E for fixed energies;E_{gen};JER",   200.,100.,3000., 200, -5, 5);
+
+        TH2D *hJER_per_eDet = new TH2D("hJER_per_eDet", "#DeltaE/E for fixed energies;E_{gen};JER",     200.,100.,3000., 200, -5, 5);
+             TH2D *hJER_per_eDet_had_pi = new TH2D("hJER_per_eDet_had_pi", "#DeltaE/E for fixed energies;E_{gen};JER",     200.,100.,3000., 200, -5, 5);
+             TH2D *hJER_per_eDet_had_e  = new TH2D("hJER_per_eDet_had_e",  "#DeltaE/E for fixed energies;E_{gen};JER",     200.,100.,3000., 200, -5, 5);
+             TH2D *hJER_per_eDet_em_pi  = new TH2D("hJER_per_eDet_em_pi",  "#DeltaE/E for fixed energies;E_{gen};JER",     200.,100.,3000., 200, -5, 5);
+             TH2D *hJER_per_eDet_em_e   = new TH2D("hJER_per_eDet_em_e",   "#DeltaE/E for fixed energies;E_{gen};JER",     200.,100.,3000., 200, -5, 5);
+
+             TH2D *hJER_per_eDet_had_det= new TH2D("hJER_per_eDet_had_det", "#DeltaE/E for fixed energies;E_{gen};JER",   200.,100.,3000., 200, -5, 5);
+             TH2D *hJER_per_eDet_em_det= new TH2D("hJER_per_eDet_em_det", "#DeltaE/E for fixed energies;E_{gen};JER",   200.,100.,3000., 200, -5, 5);
+             TH2D *hJER_per_eDet_none_det= new TH2D("hJER_per_eDet_none_det", "#DeltaE/E for fixed energies;E_{gen};JER",   200.,100.,3000., 200, -5, 5);
+
+
+
+        TH2D *hJER_per_distance = new TH2D("hJER_per_distance", "#DeltaE/E for distance;#DeltaR;JER", 	200, 0., 6.5, 
 															200, -5, 5);
-        TH2D *hJER_per_distance = new TH2D("hJER_per_distance", "Jet Energy Resolution for distance;#DeltaR;JER", 	200, 0., 6.5, 
-															200, -5, 5);
-        TH2D *hJER_per_eta = new TH2D("hJER_per_eta", "Jet Energy Resolution for distance;#DeltaR;JER",               14,-6.6,-5.2,
+        TH2D *hJER_per_eta = new TH2D("hJER_per_eta", "#DeltaE/E for distance;#DeltaR;JER",               14,-6.6,-5.2,
                                                                                                                         200, -5, 5);
         TH2D *hEnergy_per_eta = new TH2D("hEnergy_per_eta", "E_{gen} vs. #eta of leading jet", 200, 100., 3000.,  14,-6.6,-5.2);
 
@@ -295,16 +324,27 @@ cout << "Variable bins done" << endl;
 
         // JER
         TH1D *hJER_all = new TH1D("hJER_all", TString::Format("Jet Energy Resolution, " + string_gen_radius + " " + string_det_radius ), 200, -5, 5);
-        TH2D *hJER_per_energy_all = new TH2D("hJER_per_energy_all", "Jet Energy Resolution for fixed energies;E_{gen};JER",	200.,100.,3000.,
-															200, -5, 5);
-        TH2D *hJER_per_distance_all = new TH2D("hJER_per_distance_all", "Jet Energy Resolution for distance;#DeltaR;JER", 	200, 0., 6.5,
-															200, -5, 5);
-	TH2D *hJER_per_eta_all = new TH2D("hJER_per_eta_all", "Jet Energy Resolution for distance;#DeltaR;JER", 		14,-6.6,-5.2,
-															200, -5, 5);
-	TH2D *hEnergy_per_eta_all = new TH2D("hEnergy_per_eta_all", "E_{gen} vs. #eta of leading jet", 200, 100., 3000.,  14,-6.6,-5.2);
+        TH2D *hJER_per_energy_all = new TH2D("hJER_per_energy_all", "#DeltaE/E for fixed energies;E_{gen};JER",	200.,100.,3000., 	200, -5, 5);
+        TH2D *hJER_per_distance_all = new TH2D("hJER_per_distance_all", "#DeltaE/E for distance;#DeltaR;JER", 	200, 0., 6.5, 		200, -5, 5);
+	TH2D *hJER_per_eta_all = new TH2D("hJER_per_eta_all", "#DeltaE/E for distance;#DeltaR;JER", 		14,	-6.6,-5.2, 	200, -5, 5);
+	TH2D *hEnergy_per_eta_all = new TH2D("hEnergy_per_eta_all", "E_{gen} vs. #eta of leading jet", 				200, 100., 3000.,  	14,-6.6,-5.2);
 	
+        TH1D *hJER_had_pi = new TH1D("hJER_had_pi", TString::Format("Hadronic (gen and det) Jet Energy Resolution, " + string_gen_radius + " " + string_det_radius ), 200, -5, 5);
+        TH1D *hJER_had_e  = new TH1D("hJER_had_e", TString::Format("Hadronic (gen) and em (det) Jet Energy Resolution, " + string_gen_radius + " " + string_det_radius ), 200, -5, 5);
+        TH1D *hJER_em_pi = new TH1D("hJER_em_pi", TString::Format("EM (gen) and hadronic (det) Jet Energy Resolution, " + string_gen_radius + " " + string_det_radius ), 200, -5, 5);
+        TH1D *hJER_em_e  = new TH1D("hJER_em_e", TString::Format("EM (gen and det) Jet Energy Resolution, " + string_gen_radius + " " + string_det_radius ), 200, -5, 5);
+        TH1D *hJER_both_pi = new TH1D("hJER_both_pi", TString::Format("Hybrid (gen) and hadronic (det) Jet Energy Resolution, " + string_gen_radius + " " + string_det_radius ), 200, -5, 5);
+        TH1D *hJER_both_e  = new TH1D("hJER_both_e", TString::Format("Hybrid (gen) and em (det) Jet Energy Resolution, " + string_gen_radius + " " + string_det_radius ), 200, -5, 5);
 
 
+//        TMap *JER_map  JER_map;
+/*	JER_map["had_had"]  = *hJER_had_pi;
+        JER_map["had_em"]   = *hJER_had_e;
+        JER_map["em_had"]   = *hJER_em_pi;
+        JER_map["em_em"]    = *hJER_em_e;
+        JER_map["both_had"] = *hJER_both_pi;
+        JER_map["both_em"]  = *hJER_both_e;	
+*/
 	// RooUnfold.
 
 //	RooUnfoldResponse response (Ebins, Emin, Emax);
@@ -329,7 +369,11 @@ cout << "Variable bins done" << endl;
         TH2D *hEtaRDiff_all 	= new TH2D("hEtaRDiff_all", 	"Distance in #eta and R;#Delta#eta;#DeltaR",200,0.,0.8,200,0.,3.3);
         TH2D *hPhiRDiff_all 	= new TH2D("hPhiRDiff_all", 	"Distance in #eta and #varphi;#Delta#varphi;#DeltaR",200,0.,3.3,200,0.,3.3);
 
-
+	// Pion to electron ratio.
+	TH1D *hElectron_energy	= new TH1D("hElectron_energy",	"Energy of electron jets;E_{e} (GeV)",	20, 0., 1000.);
+        TH1D *hPion_energy  	= new TH1D("hPion_energy",  	"Energy of Pion jets;E_{#pi} (GeV)",   	20, 0., 1000.);
+	TH1D *hPi_e_ratio	= new TH1D("hPi_e_ratio",	"Ratio of pions to electrons;E (GeV)",	20, 0., 1000.);
+	
 	// Study the jets' energy versus the number of jets.
         TH2D *hNjet_vs_Ejets_gen = new TH2D("hNjet_vs_Ejets_gen", "Number of jets versus E leading jet (gen)",        10, -0.5, 9.5, 50, 100., 3500.);
 	TH2D *hNjet_vs_Ejets_det = new TH2D("hNjet_vs_Ejets_det", "Number of jets versus E leading jet (det)", 	10, -0.5, 9.5, 50, 100., 3500.);								
@@ -843,8 +887,7 @@ cout << "Variable bins done" << endl;
 					    }
 					  }
 					}
-
-
+	
 					/**********************
 					 * ********************
 					 * *******************/
@@ -861,14 +904,14 @@ cout << "Variable bins done" << endl;
 
 
 					while( good_castorJets.size() > 0 && good_genJets.size() > 0){ // All jets need to be matched, or at least tried to be.
-//cout << matched_pairs;
-/*
+										 
+					/*
 					// Pick a Castorjet and find the appropriate Gen Jet.
     					  MyCastorJet castorjet = good_castorJets[ 0 ];
     					  double eta_det = castorjet.eta;
     					  double phi_det = castorjet.phi;
     					  double det_energy = castorjet.energy;
-*/			
+					*/			
 					// Pick a Gen jet and find the appropriate Castor Jet
 					  MyGenJet genjet_castor = (good_genJets)[0];
 					
@@ -878,8 +921,44 @@ cout << "Variable bins done" << endl;
 
 					  int i_det = 0;
 					  bool matched = false;
-					  double lowest_distance = 10.;					
+					  double lowest_distance = 10., lowest_phidiff = 10.;					
 					  int match_det;
+				  		  
+					//
+					// Dissect the jet to get hadronic/electromagnetic nature.
+					//
+					  int ipart = 0;
+					  bool isHad = false, isEM = false, isBoth = false;
+					  double eHad = 0., eEM = 0.;					 
+					  TString genjettype;
+ 
+					  for(vector<MyGenPart>::iterator it = (genjet_castor.JetPart).begin() ;it !=  (genjet_castor.JetPart).end() ;it++,++ipart) {
+					    // cout << "\tipart\t" << ipart << "\t" << (*it).pdgId << endl;					   
+					    if(  (*it).pdgId  == 22 || ( fabs( (*it).pdgId ) >= 11 && fabs( (*it).pdgId ) <= 18) ){ isEM = true; eEM += (*it).Energy();}
+					    else if( fabs( (*it).pdgId ) > 100 ){ isHad = true; eHad += (*it).Energy();}
+					  }
+				
+					  // In case of hybrid jets
+					  if( isEM && isHad){
+					    
+					    if( eHad > eEM){
+					      if( eHad >= 2.*eEM ){ isEM = false; }
+					      else		 { isBoth = true; }
+					    }
+					    else{ 
+                                              if( eHad < 2.*eEM ){ isHad = false; }
+                                              else               { isBoth = true; }
+					    }
+					  } // End hybrids.
+					  
+					  if     ( isHad ){ genjettype = "had"; }
+					  else if( isEM  ){ genjettype = "em"; }
+					  else if( isBoth){ genjettype = "both";}
+
+
+					  //
+					  // Matching of jets.
+					  //
 
   					  for( ; i_det < good_castorJets.size(); i_det++){
 					   
@@ -889,12 +968,10 @@ cout << "Variable bins done" << endl;
 
 					    double phidiff = fabs(phi_det-phi_gen);	if( phidiff > PI ){ phidiff = 2.*PI - phidiff; }
 					    double etadiff = fabs(eta_det-eta_gen);
-					    double distance = sqrt( etadiff*etadiff + phidiff*phidiff );
-
-//cout << "\t" << i_det << "\t" << distance << "\t" << lowest_distance;
-					    // Matching in R.
-				            if( distance < lowest_distance ){ 
-					      lowest_distance = distance;
+					    
+					    // Matching in phi.
+				            if( phidiff < lowest_phidiff ){ 
+					      lowest_phidiff = phidiff;
 					      match_det = i_det;
 					    }
 					  } // Loop over Castor jets.
@@ -906,15 +983,62 @@ cout << "Variable bins done" << endl;
 					  double phi_det = castorjet.phi;
                                           double phidiff = fabs(phi_det-phi_gen);     if( phidiff > PI ){ phidiff = 2.*PI - phidiff; }
                                           double etadiff = fabs(eta_det-eta_gen);
-
+					  lowest_distance = sqrt( etadiff*etadiff + phidiff*phidiff );
                                           double det_energy = castorjet.energy;
 
+
+					  double depth_jet = castorjet.depth;	// depth
+					  double fhot_jet = castorjet.fhot;		// fhot
+					  double fem_jet = castorjet.fem;
+					  double sigmaz_jet = castorjet.sigmaz;
+					  double width_jet = castorjet.width;
+
+					  TString detjettype = "other";
+					  // Count pions.
+					  if( ! (depth_jet > -14450. && det_energy < 175.) ){ // Most likely not a pion.
+					    if( ! (depth_jet > -14460. && det_energy > 175.) ){ // Most likely not a pion.
+					      if( ! (fem_jet > 0.95) ){ // Most likely no pion.
+					      	
+						hPion_energy->Fill( det_energy );
+						detjettype = "had";
+					      } // Not a pion.
+					    } // Not a pion.
+				          } // Not a pion.
+				
+					  // Count electrons.
+					  if( ! (fhot_jet < 0.45) ){
+					    if( ! (fem_jet < 0.9) ){
+					      if( ! ( sigmaz_jet > 30. && det_energy < 75.) ){
+						if( ! ( sigmaz_jet > 40. && det_energy > 75. ) ){
+						  if( ! ( width_jet > 11.5) ){
+						    if( ! ( depth_jet < -14450. && det_energy < 125.) ){
+						      if( ! ( depth_jet < -14460. && det_energy > 125.) ){						    
+							hElectron_energy->Fill( det_energy );
+							detjettype = "em";
+						      }
+						    }					
+						  }
+						}
+					      }
+					    }
+					  } // Not an electron.
+
+					/*
+					  cout < endl << endl << endl 
+					  << "\tEnergy\t" << det_energy << endl 
+					  << "\tDepth\t" << depth_jet << endl
+					  << "\tfhot\t" << fhot_jet << endl
+					  << "\tfem\t" << fem_jet << endl
+					  << "\tsigma_z\t" << sigmaz_jet << endl
+					  << "\twidth\t" << width_jet << endl;
+					*/
 					  // -- looking into distance information.
 					  // Leading jets.
 					  if( matched_pairs == 0){
 					    response.Fill( det_energy, gen_energy); 
 					    
-					    hCastorJet_energy_response->Fill( det_energy, gen_energy); 
+					    hCastorJet_energy_response->Fill( det_energy, gen_energy);
+					 
                                             hDistance->Fill( lowest_distance );
                                             hPhiDiff -> Fill( phidiff );
                                             hEtaDiff -> Fill( etadiff );
@@ -939,7 +1063,9 @@ cout << "Variable bins done" << endl;
 		
 					  // -- looking into JER information.
 					  // 
-                                          double JER = (gen_energy - det_energy)/gen_energy;
+                                          double JER = -(gen_energy - det_energy)/gen_energy;
+					  double JER_eDet = (gen_energy - det_energy)/det_energy;					
+
                                           hJER_all		->Fill( JER );
                                           hJER_per_energy_all	->Fill( gen_energy, JER);
                                           hJER_per_distance_all	->Fill( sqrt(pow(phi_det - phi_gen, 2.) + pow(eta_det - eta_gen, 2.)), JER );
@@ -949,9 +1075,56 @@ cout << "Variable bins done" << endl;
 					  if( matched_pairs == 0){
                                             hJER		->Fill( JER );
                                             hJER_per_energy	->Fill( gen_energy, JER);
+					    hJER_per_eDet	->Fill( det_energy, JER_eDet);
                                             hJER_per_distance	->Fill( sqrt(pow(phi_det - phi_gen, 2.) + pow(eta_det - eta_gen, 2.)), JER );
 					    hJER_per_eta	->Fill( eta_gen, JER);
 				            hEnergy_per_eta	->Fill( gen_energy, eta_gen );
+
+					    // Look at jet types and fill in DeltaE/E..
+					    if( detjettype == "had" ){
+					      if( genjettype == "had") { 
+						hJER_had_pi 		->Fill( JER ); 
+						hCastorJet_Matrix_had_pi->Fill(det_energy, gen_energy);
+						hJER_per_energy_had_pi  ->Fill( gen_energy, JER);
+                                                hJER_per_eDet_had_pi  	->Fill( det_energy, JER_eDet);
+					      }
+                                              if( genjettype == "em") {  
+						hJER_em_pi  		->Fill( JER ); 
+						hCastorJet_Matrix_em_pi	->Fill(det_energy, gen_energy); 
+						hJER_per_energy_em_pi  	->Fill( gen_energy, JER);
+						hJER_per_eDet_em_pi	->Fill( det_energy, JER_eDet);
+					      }
+                                              if( genjettype == "both"){ 
+						hJER_both_pi->Fill( JER ); 
+					      }
+					    }
+                                            else if( detjettype == "em" ){
+                                              if( genjettype == "had") { 
+						hJER_had_e 		->Fill( JER ); 
+						hCastorJet_Matrix_had_e	->Fill(det_energy, gen_energy); 
+                                                hJER_per_energy_had_e  	->Fill( gen_energy, JER);
+						hJER_per_eDet_had_e	->Fill( det_energy, JER_eDet);
+					      }
+                                              if( genjettype == "em") {  
+						hJER_em_e  		->Fill( JER ); 
+						hCastorJet_Matrix_em_e	->Fill(det_energy, gen_energy); 
+                                                hJER_per_energy_em_e   	->Fill( gen_energy, JER);
+						hJER_per_eDet_em_e	->Fill( det_energy, JER_eDet);
+					      }
+                                              if( genjettype == "both"){ 
+						hJER_both_e->Fill( JER ); 
+					      }
+                                            }
+					    else{
+					      hJER_per_energy_none_det	->Fill( gen_energy, JER );
+					      hJER_per_eDet_none_det	->Fill( det_energy, JER_eDet);
+					    }
+
+					/*
+					    if( detjettype == "had" || detjettype == "em"){
+					      (JER_map[genjettype + "_" + detjettype]).Fill( JER );
+					*/
+					    
 					  }
 					  matched_pairs++;
 
@@ -1124,24 +1297,72 @@ cout << "Variable bins done" << endl;
         hEtaRDiff_all->Write();
         hPhiRDiff_all->Write();
 
+	hElectron_energy	->Write();
+	hPion_energy		->Write();
+	
+	  hPi_e_ratio->Divide( hPion_energy, hElectron_energy );
+	hPi_e_ratio		->Write();
 
-	hNumber_of_match_jets->Write();
+	hNumber_of_match_jets	->Write();
 
-	hTrackjets_2D_number->Write();
-	hTrackjets_2D_pt->Write();
+	hTrackjets_2D_number	->Write();
+	hTrackjets_2D_pt	->Write();
 
-	hJER->Write();
-	hJER_per_energy->Write();
-        hJER_per_distance->Write();
-        hJER_per_eta->Write();
-        hEnergy_per_eta->Write();
+	hJER			->Write();
+	hJER_per_energy		->Write();
+        hJER_per_distance	->Write();
+        hJER_per_eta		->Write();
+        hEnergy_per_eta		->Write();
 
-        hJER_all->Write();
-        hJER_per_energy_all->Write();
-        hJER_per_distance_all->Write();
-	hJER_per_eta_all->Write();
-	hEnergy_per_eta_all->Write();
+        hJER_all		->Write();
+        hJER_per_energy_all	->Write();
+        hJER_per_distance_all	->Write();
+	hJER_per_eta_all	->Write();
+	hEnergy_per_eta_all	->Write();
 
+	/* Sort jets per type. */
+	hJER_had_pi ->Write();
+        hJER_had_e  ->Write();
+        hJER_em_pi  ->Write();
+        hJER_em_e   ->Write();
+        hJER_both_pi->Write();
+        hJER_both_e ->Write();
+
+	hCastorJet_Matrix_had_pi->Write();
+        hCastorJet_Matrix_had_e ->Write();
+        hCastorJet_Matrix_em_pi ->Write();
+        hCastorJet_Matrix_em_e	->Write();
+
+	/* DeltaE/E as function of generator energy. */
+
+	  hJER_per_energy_had_det->Add(hJER_per_energy_had_pi, hJER_per_energy_em_pi);
+	hJER_per_energy_had_det->Write();
+
+          hJER_per_energy_em_det->Add(hJER_per_energy_had_e, hJER_per_energy_em_e);
+        hJER_per_energy_em_det->Write();
+        hJER_per_energy_had_pi->Write();
+        hJER_per_energy_had_e->Write();
+        hJER_per_energy_em_pi->Write();
+	hJER_per_energy_em_e->Write();
+
+	hJER_per_energy_none_det->Write();
+
+	/* DeltaE/E as function of detector energy. */
+
+          hJER_per_eDet_had_det->Add(hJER_per_eDet_had_pi, hJER_per_eDet_em_pi);
+        hJER_per_eDet_had_det->Write();
+
+          hJER_per_eDet_em_det->Add(hJER_per_eDet_had_e, hJER_per_eDet_em_e);
+        hJER_per_eDet_em_det->Write();
+        hJER_per_eDet_had_pi->Write();
+        hJER_per_eDet_had_e->Write();
+        hJER_per_eDet_em_pi->Write();
+        hJER_per_eDet_em_e->Write();
+
+        hJER_per_energy_none_det->Write();
+
+	hJER_per_eDet->Write();
+	
 	hMatched->Write();
 	hUnmatched->Write();
 	hJRE->Write();		
