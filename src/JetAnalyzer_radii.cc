@@ -900,7 +900,7 @@ cout << "Variable bins done" << endl;
 
 					// Match DET and GEN jets. 
 					hNumber_of_match_jets->Fill( good_castorJets.size(), good_genJets.size());                             
-					int matched_pairs = 0;
+					int matched_pairs = 0; 
 
 
 					while( good_castorJets.size() > 0 && good_genJets.size() > 0){ // All jets need to be matched, or at least tried to be.
@@ -1033,7 +1033,7 @@ cout << "Variable bins done" << endl;
 					  << "\twidth\t" << width_jet << endl;
 					*/
 					  // -- looking into distance information.
-					  // Leading jets.
+					  // Leading jets, no pair matched yet.
 					  if( matched_pairs == 0){
 					    response.Fill( det_energy, gen_energy); 
 					    
