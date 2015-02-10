@@ -161,8 +161,10 @@ void JetAnalyzer_radii::Loop() {
 	
         // AVS - number of bins.
 	/* We get binwidth from peak JER. */
-	double Emin = jetEThreshold_det + 100., Emax = 3000.;
-	int Ebins = static_cast<int> ( (Emax - Emin)/EbinWidth );
+//	double Emin = jetEThreshold_det + 0., Emax = 3000.;
+//	int Ebins = static_cast<int> ( (Emax - Emin)/EbinWidth );
+	double Emin = 0., Emax = 3000.;
+	int Ebins = 200.;
 
 
 	/* If we want variable Ebins. */
@@ -185,7 +187,7 @@ void JetAnalyzer_radii::Loop() {
 	  count_bincenters++;
 	}
 
-	Ebins = binEdges.size();
+//	Ebins = binEdges.size();
         float *Ebins_var = new float[Ebins];
 //float Ebins_var[Ebins];
 	for(int i = 0; i < binEdges.size(); i++){
@@ -230,8 +232,8 @@ cout << "Variable bins done" << endl;
 	
 	// Castor jet histograms
 //	TH1D *hCastorJet_energy = new TH1D("hCastorJet_energy","CastorJet energy distribution",Ebins, Emin, Emax);
-        TH1D *hCastorJet_energy = new TH1D("hCastorJet_energy","CastorJet energy distribution",200.,100.,3000.);
-        TH1D *hGenJet_energy = new TH1D("hGenJet_energy","GenJet energy distribution",Ebins, Emin, Emax);
+        TH1D *hCastorJet_energy = new TH1D("hCastorJet_energy","CastorJet energy distribution",	Ebins, Emin, Emax);
+        TH1D *hGenJet_energy = new TH1D("hGenJet_energy","GenJet energy distribution",		Ebins, Emin, Emax);
 	TH1D *hCastorJet_pt = new TH1D("hCastorJet_pt","CastorJet pt distribution",30,0,30);
 	TH1D *hCastorJet_em = new TH1D("hCastorJet_em","CastorJet EM energy distribution",150,0,1500);
 	TH1D *hCastorJet_had = new TH1D("hCastorJet_had","CastorJet HAD energy distribution",150,0,1500);
@@ -246,16 +248,16 @@ cout << "Variable bins done" << endl;
 	TH1D *hCastorJet_multi = new TH1D("hCastorJet_multi","CastorJet multiplicity distribution",17,0,17);
 
 	// Central-forward configuration response matrix.
-        TH1D *hCastorJet_cf_energy = new TH1D("hCastorJet_cf_energy", "CastorJet energy in with leading central jet",Ebins+10,Emin-10*EbinWidth,Emax);
-        TH1D *hCastorJet_cf_energy_gen = new TH1D("hCastorJet_cf_energy_gen", "CastorJet energy in with leading central jet",Ebins+10,Emin-10*EbinWidth,Emax);
-	TH2D *hCastorJet_cf_energy_response = new TH2D("hCastorJet_cf_energy_response", "CastorJet energy response matrix for leading central jet",Ebins+10,Emin-10*EbinWidth,Emax,Ebins+10,Emin-10*EbinWidth,Emax);
+        TH1D *hCastorJet_cf_energy = new TH1D("hCastorJet_cf_energy", "CastorJet energy in with leading central jet",					Ebins+10,Emin-10*EbinWidth,Emax);
+        TH1D *hCastorJet_cf_energy_gen = new TH1D("hCastorJet_cf_energy_gen", "CastorJet energy in with leading central jet",				Ebins+10,Emin-10*EbinWidth,Emax);
+	TH2D *hCastorJet_cf_energy_response = new TH2D("hCastorJet_cf_energy_response", "CastorJet energy response matrix for leading central jet",	Ebins+10,Emin-10*EbinWidth,Emax,Ebins+10,Emin-10*EbinWidth,Emax);
         TH1D *hCastorJet_cf_energy_fakes = new TH1D("hCastorJet_cf_energy_fakes", "CastorJet energy in with leading central jet - fakes",Ebins+10,Emin-10*EbinWidth,Emax);
         TH1D *hCastorJet_cf_energy_misses = new TH1D("hCastorJet_cf_energy_misses", "CastorJet energy in with leading central jet - misses",Ebins+10,Emin-10*EbinWidth,Emax);
 
 	// All Casto jets response matrix.
-        TH2D *hCastorJet_energy_response = new TH2D("hCastorJet_energy_response","CastorJet energy distribution - Response", Ebins_fix, Emin_fix, Emax_fix, Ebins_fix, Emin_fix, Emax_fix);	// ,Ebins+10,Emin-10*EbinWidth,Emax,Ebins+10,Emin-10*EbinWidth,Emax);
-        TH2D *hCastorJet_energy_fakes 	 = new TH2D("hCastorJet_energy_fakes",	 "CastorJet energy distribution - Fakes", Ebins_fix, Emin_fix, Emax_fix, Ebins_fix, Emin_fix, Emax_fix);	// ,Ebins+10,Emin-10*EbinWidth,Emax);
-        TH2D *hCastorJet_energy_misses	 = new TH2D("hCastorJet_energy_misses",	 "CastorJet energy distribution - Misses", Ebins_fix, Emin_fix, Emax_fix, Ebins_fix, Emin_fix, Emax_fix);	// ,Ebins+10,Emin-10*EbinWidth,Emax);
+        TH2D *hCastorJet_energy_response = new TH2D("hCastorJet_energy_response","CastorJet energy distribution - Response", 	Ebins, Emin, Emax, Ebins, Emin, Emax);	// ,Ebins+10,Emin-10*EbinWidth,Emax,Ebins+10,Emin-10*EbinWidth,Emax);
+        TH2D *hCastorJet_energy_fakes 	 = new TH2D("hCastorJet_energy_fakes",	 "CastorJet energy distribution - Fakes", 	Ebins, Emin, Emax, Ebins, Emin, Emax);	// ,Ebins+10,Emin-10*EbinWidth,Emax);
+        TH2D *hCastorJet_energy_misses	 = new TH2D("hCastorJet_energy_misses",	 "CastorJet energy distribution - Misses", 	Ebins, Emin, Emax, Ebins, Emin, Emax);	// ,Ebins+10,Emin-10*EbinWidth,Emax);
 	
 	TH2D *hCastorJet_energy_complete_response = new TH2D("hCastorJet_energy_complete_response","CastorJet energy distribution - Complete Response", Ebins_fix, Emin_fix, Emax_fix, Ebins_fix, Emin_fix, Emax_fix);
 
@@ -272,10 +274,10 @@ cout << "Variable bins done" << endl;
 //        TH2D *hCastorJet_Matrix = new TH2D("hCastorJet_responseMatrix", "Castor jet Response Matrix",Ebins+10,Emin-10*EbinWidth,Emax,Ebins+10,Emin-10*EbinWidth,Emax);
         TH2D *hCastorJet_Matrix = new TH2D("hCastorJet_responseMatrix", "Castor jet Response Matrix",Ebins-1, Ebins_var,Ebins-1, Ebins_var);
 
-	  TH2D *hCastorJet_Matrix_had_pi = new TH2D("hCastorJet_responseMatrix_had_pi", "Castor jet Response Matrix (had-had)"	,Ebins_fix, Emin_fix, Emax_fix, Ebins_fix, Emin_fix, Emax_fix);
-          TH2D *hCastorJet_Matrix_had_e = new TH2D("hCastorJet_responseMatrix_had_e", 	"Castor jet Response Matrix (had-em)"	,Ebins_fix, Emin_fix, Emax_fix, Ebins_fix, Emin_fix, Emax_fix);
-          TH2D *hCastorJet_Matrix_em_pi = new TH2D("hCastorJet_responseMatrix_em_pi", 	"Castor jet Response Matrix (em-had)"	,Ebins_fix, Emin_fix, Emax_fix, Ebins_fix, Emin_fix, Emax_fix);
-          TH2D *hCastorJet_Matrix_em_e 	= new TH2D("hCastorJet_responseMatrix_em_e", 	"Castor jet Response Matrix (em-em)"	,Ebins_fix, Emin_fix, Emax_fix, Ebins_fix, Emin_fix, Emax_fix);
+	  TH2D *hCastorJet_Matrix_had_pi = new TH2D("hCastorJet_responseMatrix_had_pi", "Castor jet Response Matrix (had-had)"	,Ebins, Emin, Emax, Ebins, Emin, Emax);
+          TH2D *hCastorJet_Matrix_had_e = new TH2D("hCastorJet_responseMatrix_had_e", 	"Castor jet Response Matrix (had-em)"	,Ebins, Emin, Emax, Ebins, Emin, Emax);
+          TH2D *hCastorJet_Matrix_em_pi = new TH2D("hCastorJet_responseMatrix_em_pi", 	"Castor jet Response Matrix (em-had)"	,Ebins, Emin, Emax, Ebins, Emin, Emax);
+          TH2D *hCastorJet_Matrix_em_e 	= new TH2D("hCastorJet_responseMatrix_em_e", 	"Castor jet Response Matrix (em-em)"	,Ebins, Emin, Emax, Ebins, Emin, Emax);
 //          TH2D *hCastorJet_Matrix_had_pi = new TH2D("hCastorJet_responseMatrix_had_pi", "Castor jet Response Matrix (had-had)",Ebins-1, Ebins_var,Ebins-1, Ebins_var);
 //          TH2D *hCastorJet_Matrix_had_pi = new TH2D("hCastorJet_responseMatrix_had_pi", "Castor jet Response Matrix (had-had)",Ebins-1, Ebins_var,Ebins-1, Ebins_var);
 
@@ -289,33 +291,33 @@ cout << "Variable bins done" << endl;
 
 	// Efficiency control.
 	TH1D *hJER = new TH1D("hJER", "Jet Energy Resolution", 200, -5, 5);
-        TH2D *hJER_per_energy = new TH2D("hJER_per_energy", "#DeltaE/E for fixed energies;E_{gen};JER", 	200.,100.,3000., 200, -5, 5);
-	     TH2D *hJER_per_energy_had_pi = new TH2D("hJER_per_energy_had_pi", "#DeltaE/E for fixed energies;E_{gen};JER",     200.,100.,3000., 200, -5, 5);
-             TH2D *hJER_per_energy_had_e  = new TH2D("hJER_per_energy_had_e",  "#DeltaE/E for fixed energies;E_{gen};JER",     200.,100.,3000., 200, -5, 5);
-             TH2D *hJER_per_energy_em_pi  = new TH2D("hJER_per_energy_em_pi",  "#DeltaE/E for fixed energies;E_{gen};JER",     200.,100.,3000., 200, -5, 5);
-             TH2D *hJER_per_energy_em_e	  = new TH2D("hJER_per_energy_em_e",   "#DeltaE/E for fixed energies;E_{gen};JER",     200.,100.,3000., 200, -5, 5);
+        TH2D *hJER_per_energy = new TH2D("hJER_per_energy", "#DeltaE/E for fixed energies;E_{gen};JER", 			Ebins, Emin, Emax, 200, -5, 5);
+	     TH2D *hJER_per_energy_had_pi = new TH2D("hJER_per_energy_had_pi", "#DeltaE/E for fixed energies;E_{gen};#DeltaE/E",	Ebins, Emin, Emax, 200, -5, 5);
+             TH2D *hJER_per_energy_had_e  = new TH2D("hJER_per_energy_had_e",  "#DeltaE/E for fixed energies;E_{gen};#DeltaE/E",     	Ebins, Emin, Emax, 200, -5, 5);
+             TH2D *hJER_per_energy_em_pi  = new TH2D("hJER_per_energy_em_pi",  "#DeltaE/E for fixed energies;E_{gen};#DeltaE/E",     	Ebins, Emin, Emax, 200, -5, 5);
+             TH2D *hJER_per_energy_em_e	  = new TH2D("hJER_per_energy_em_e",   "#DeltaE/E for fixed energies;E_{gen};#DeltaE/E",     	Ebins, Emin, Emax, 200, -5, 5);
 
-	     TH2D *hJER_per_energy_had_det= new TH2D("hJER_per_energy_had_det", "#DeltaE/E for fixed energies;E_{gen};JER",   200.,100.,3000., 200, -5, 5);
-             TH2D *hJER_per_energy_em_det= new TH2D("hJER_per_energy_em_det", "#DeltaE/E for fixed energies;E_{gen};JER",   200.,100.,3000., 200, -5, 5);
-             TH2D *hJER_per_energy_none_det= new TH2D("hJER_per_energy_none_det", "#DeltaE/E for fixed energies;E_{gen};JER",   200.,100.,3000., 200, -5, 5);
+	     TH2D *hJER_per_energy_had_det= new TH2D("hJER_per_energy_had_det", "#DeltaE/E for fixed energies;E_{gen};#DeltaE/E",   	Ebins, Emin, Emax, 200, -5, 5);
+             TH2D *hJER_per_energy_em_det= new TH2D("hJER_per_energy_em_det", "#DeltaE/E for fixed energies;E_{gen};#DeltaE/E",   	Ebins, Emin, Emax, 200, -5, 5);
+             TH2D *hJER_per_energy_none_det= new TH2D("hJER_per_energy_none_det", "#DeltaE/E for fixed energies;E_{gen};#DeltaE/E",   	Ebins, Emin, Emax, 200, -5, 5);
 
-        TH2D *hJER_per_eDet = new TH2D("hJER_per_eDet", "#DeltaE/E for fixed energies;E_{gen};JER",     200.,100.,3000., 200, -5, 5);
-             TH2D *hJER_per_eDet_had_pi = new TH2D("hJER_per_eDet_had_pi", "#DeltaE/E for fixed energies;E_{gen};JER",     200.,100.,3000., 200, -5, 5);
-             TH2D *hJER_per_eDet_had_e  = new TH2D("hJER_per_eDet_had_e",  "#DeltaE/E for fixed energies;E_{gen};JER",     200.,100.,3000., 200, -5, 5);
-             TH2D *hJER_per_eDet_em_pi  = new TH2D("hJER_per_eDet_em_pi",  "#DeltaE/E for fixed energies;E_{gen};JER",     200.,100.,3000., 200, -5, 5);
-             TH2D *hJER_per_eDet_em_e   = new TH2D("hJER_per_eDet_em_e",   "#DeltaE/E for fixed energies;E_{gen};JER",     200.,100.,3000., 200, -5, 5);
+        TH2D *hJER_per_eDet = new TH2D("hJER_per_eDet", "#DeltaE/E for fixed energies;E_{det};#DeltaE/E",     Ebins, Emin, Emax, 200, -5, 5);
+             TH2D *hJER_per_eDet_had_pi = new TH2D("hJER_per_eDet_had_pi", "#DeltaE/E for fixed energies;E_{det};#DeltaE/E",     Ebins, Emin, Emax, 200, -5, 5);
+             TH2D *hJER_per_eDet_had_e  = new TH2D("hJER_per_eDet_had_e",  "#DeltaE/E for fixed energies;E_{det};#DeltaE/E",     Ebins, Emin, Emax, 200, -5, 5);
+             TH2D *hJER_per_eDet_em_pi  = new TH2D("hJER_per_eDet_em_pi",  "#DeltaE/E for fixed energies;E_{det};#DeltaE/E",     Ebins, Emin, Emax, 200, -5, 5);
+             TH2D *hJER_per_eDet_em_e   = new TH2D("hJER_per_eDet_em_e",   "#DeltaE/E for fixed energies;E_{det};#DeltaE/E",     Ebins, Emin, Emax, 200, -5, 5);
 
-             TH2D *hJER_per_eDet_had_det= new TH2D("hJER_per_eDet_had_det", "#DeltaE/E for fixed energies;E_{gen};JER",   200.,100.,3000., 200, -5, 5);
-             TH2D *hJER_per_eDet_em_det= new TH2D("hJER_per_eDet_em_det", "#DeltaE/E for fixed energies;E_{gen};JER",   200.,100.,3000., 200, -5, 5);
-             TH2D *hJER_per_eDet_none_det= new TH2D("hJER_per_eDet_none_det", "#DeltaE/E for fixed energies;E_{gen};JER",   200.,100.,3000., 200, -5, 5);
+             TH2D *hJER_per_eDet_had_det= new TH2D("hJER_per_eDet_had_det", "#DeltaE/E for fixed energies;E_{det};#DeltaE/E",   Ebins, Emin, Emax, 200, -5, 5);
+             TH2D *hJER_per_eDet_em_det= new TH2D("hJER_per_eDet_em_det", "#DeltaE/E for fixed energies;E_{det};#DeltaE/E",  Ebins, Emin, Emax, 200, -5, 5);
+             TH2D *hJER_per_eDet_none_det= new TH2D("hJER_per_eDet_none_det", "#DeltaE/E for fixed energies;E_{det};#DeltaE/E",   Ebins, Emin, Emax, 200, -5, 5);
 
 
 
-        TH2D *hJER_per_distance = new TH2D("hJER_per_distance", "#DeltaE/E for distance;#DeltaR;JER", 	200, 0., 6.5, 
+        TH2D *hJER_per_distance = new TH2D("hJER_per_distance", "#DeltaE/E for distance;#DeltaR;#DeltaE/E", 	200, 0., 6.5, 
 															200, -5, 5);
-        TH2D *hJER_per_eta = new TH2D("hJER_per_eta", "#DeltaE/E for distance;#DeltaR;JER",               14,-6.6,-5.2,
+        TH2D *hJER_per_eta = new TH2D("hJER_per_eta", "#DeltaE/E for distance;#DeltaR;#DeltaE/E",               14,-6.6,-5.2,
                                                                                                                         200, -5, 5);
-        TH2D *hEnergy_per_eta = new TH2D("hEnergy_per_eta", "E_{gen} vs. #eta of leading jet", 200, 100., 3000.,  14,-6.6,-5.2);
+        TH2D *hEnergy_per_eta = new TH2D("hEnergy_per_eta", "E_{gen} vs. #eta of leading jet", Ebins, Emin, Emax,  14,-6.6,-5.2);
 
         // Matches.
         TH1D *hMatched = new TH1D("hMatched", "Castor and Gen jets match", 10, -0.5, 9.5);
@@ -901,24 +903,60 @@ cout << "Variable bins done" << endl;
 					// Match DET and GEN jets. 
 					hNumber_of_match_jets->Fill( good_castorJets.size(), good_genJets.size());                             
 					int matched_pairs = 0;
+					
 
-
-					while( good_castorJets.size() > 0 && good_genJets.size() > 0){ // All jets need to be matched, or at least tried to be.
-										 
-					/*
+//					while( good_castorJets.size() > 0 && good_genJets.size() > 0){ // All jets need to be matched, or at least tried to be.
+					while( matched_pairs == 0 && good_castorJets.size() > 0 && good_genJets.size() > 0 ){										 
+					
 					// Pick a Castorjet and find the appropriate Gen Jet.
     					  MyCastorJet castorjet = good_castorJets[ 0 ];
     					  double eta_det = castorjet.eta;
     					  double phi_det = castorjet.phi;
     					  double det_energy = castorjet.energy;
-					*/			
+					
+                                          int i_gen = 0;
+                                          bool matched = false;
+                                          double lowest_distance = 10., lowest_phidiff = 10.;                                   
+                                          int match_gen;
+
+					  //
+					  // Matching of jets.
+					  //
+
+  					  for( ; i_gen < good_genJets.size(); i_gen++){
+					   
+                                            MyGenJet genjet_castor = (good_genJets)[i_gen];
+                                            double eta_gen = genjet_castor.Eta();
+                                            double phi_gen = genjet_castor.Phi();
+
+					    double phidiff = fabs(phi_det-phi_gen);	if( phidiff > PI ){ phidiff = 2.*PI - phidiff; }
+					    double etadiff = fabs(eta_det-eta_gen);
+					    
+					    // Matching in phi.
+				            if( phidiff < lowest_phidiff ){ 
+					      lowest_phidiff = phidiff;
+					      match_gen = i_gen;
+					    }
+					  } // Loop over Castor jets.
+						  
+                                          MyGenJet genjet_castor = good_genJets[ match_gen ];
+                                          double eta_gen = genjet_castor.Eta();
+                                          double phi_gen = genjet_castor.Phi();
+                                          double phidiff = fabs(phi_det-phi_gen);     if( phidiff > PI ){ phidiff = 2.*PI - phidiff; }
+                                          double etadiff = fabs(eta_det-eta_gen);
+                                          lowest_distance = sqrt( etadiff*etadiff + phidiff*phidiff );
+                                          double gen_energy = genjet_castor.Energy();		
+
+					  TString genjettype = "had";	
+
 					// Pick a Gen jet and find the appropriate Castor Jet
+					/*
 					  MyGenJet genjet_castor = (good_genJets)[0];
 					
                                           double eta_gen = genjet_castor.Eta();
                                           double phi_gen = genjet_castor.Phi();
                                           double gen_energy = genjet_castor.Energy();
-
+					
 					  int i_det = 0;
 					  bool matched = false;
 					  double lowest_distance = 10., lowest_phidiff = 10.;					
@@ -932,12 +970,14 @@ cout << "Variable bins done" << endl;
 					  double eHad = 0., eEM = 0.;					 
 					  TString genjettype;
  
+
 					  for(vector<MyGenPart>::iterator it = (genjet_castor.JetPart).begin() ;it !=  (genjet_castor.JetPart).end() ;it++,++ipart) {
 					    // cout << "\tipart\t" << ipart << "\t" << (*it).pdgId << endl;					   
 					    if(  (*it).pdgId  == 22 || ( fabs( (*it).pdgId ) >= 11 && fabs( (*it).pdgId ) <= 18) ){ isEM = true; eEM += (*it).Energy();}
 					    else if( fabs( (*it).pdgId ) > 100 ){ isHad = true; eHad += (*it).Energy();}
 					  }
-				
+										
+
 					  // In case of hybrid jets
 					  if( isEM && isHad){
 					    
@@ -954,7 +994,6 @@ cout << "Variable bins done" << endl;
 					  if     ( isHad ){ genjettype = "had"; }
 					  else if( isEM  ){ genjettype = "em"; }
 					  else if( isBoth){ genjettype = "both";}
-
 
 					  //
 					  // Matching of jets.
@@ -976,8 +1015,7 @@ cout << "Variable bins done" << endl;
 					    }
 					  } // Loop over Castor jets.
 					
-					  /* Fill in fake or match. */
-
+					  // Fill in fake or match. 
 					  MyCastorJet castorjet = good_castorJets[ match_det ];
 					  double eta_det = castorjet.eta;
 					  double phi_det = castorjet.phi;
@@ -985,8 +1023,7 @@ cout << "Variable bins done" << endl;
                                           double etadiff = fabs(eta_det-eta_gen);
 					  lowest_distance = sqrt( etadiff*etadiff + phidiff*phidiff );
                                           double det_energy = castorjet.energy;
-
-
+					*/
 					  double depth_jet = castorjet.depth;	// depth
 					  double fhot_jet = castorjet.fhot;		// fhot
 					  double fem_jet = castorjet.fem;
@@ -1057,8 +1094,8 @@ cout << "Variable bins done" << endl;
 
 					  hCastorJet_energy_ratio->Fill( gen_energy/det_energy, det_energy);
 					  /* Remove det and gen jet from vector. */
-					  good_castorJets.erase( good_castorJets.begin() + i_det );
-					  good_genJets.erase( good_genJets.begin() + 0 );
+					  good_castorJets.erase( good_castorJets.begin() + 0 ); // + 0 because we start from Castorjets.
+					  good_genJets.erase( good_genJets.begin() + i_gen );
 					  // matched = true;
 		
 					  // -- looking into JER information.
