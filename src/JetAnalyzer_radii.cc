@@ -76,6 +76,7 @@
 #define jetEThreshold_det 0. 
 #define EbinWidth 5.
 #define EbinWidth_rel 1.4
+#define phi_diff_max 0.1
 
 #define jet_distance 10
 #define jet_distance_string "JER_allPairs__JetSorted_ak5"
@@ -338,23 +339,11 @@ cout << "Variable bins done" << endl;
         TH1D *hJER_both_pi = new TH1D("hJER_both_pi", TString::Format("Hybrid (gen) and hadronic (det) Jet Energy Resolution, " + string_gen_radius + " " + string_det_radius ), 200, -5, 5);
         TH1D *hJER_both_e  = new TH1D("hJER_both_e", TString::Format("Hybrid (gen) and em (det) Jet Energy Resolution, " + string_gen_radius + " " + string_det_radius ), 200, -5, 5);
 
-
-//        TMap *JER_map  JER_map;
-/*	JER_map["had_had"]  = *hJER_had_pi;
-        JER_map["had_em"]   = *hJER_had_e;
-        JER_map["em_had"]   = *hJER_em_pi;
-        JER_map["em_em"]    = *hJER_em_e;
-        JER_map["both_had"] = *hJER_both_pi;
-        JER_map["both_em"]  = *hJER_both_e;	
-*/
 	// RooUnfold.
 
 //	RooUnfoldResponse response (Ebins, Emin, Emax);
 	RooUnfoldResponse response 		(hCastorJet_energy, hCastorJet_energy, "response");
 	RooUnfoldResponse response_all		(hCastorJet_energy, hCastorJet_energy, "response_all");
-
-//        RooUnfoldResponse response_cf (Ebins, Emin, Emax, "response_cf");
-//        RooUnfoldResponse response_cf_onlyMatches (Ebins, Emin, Emax, "response_cf_onlyMatches");
 
 	// Jet distance distribution.
 	TH1D *hDistance 	= new TH1D("hJetDistance",	"Distance between matched jets;#DeltaR;dN/d#DeltaR", 200, 0., 2.);
@@ -903,13 +892,15 @@ cout << "Variable bins done" << endl;
 					// Match DET and GEN jets. 
 					hNumber_of_match_jets->Fill( good_castorJets.size(), good_genJets.size());                             
 					int matched_pairs = 0;
-					
+				
+					// for( int i_det = 0; i_det < good_castorJets.size(); i_det++){	
+					//cout << "Events\t" << counter_events << "DET\t" << good_castorJets.size() << "\tGEN\t" << good_genJets.size() << endl; 
 
-//					while( good_castorJets.size() > 0 && good_genJets.size() > 0){ // All jets need to be matched, or at least tried to be.
-					while( matched_pairs == 0 && good_castorJets.size() > 0 && good_genJets.size() > 0 ){										 
-					
+					while( matched_pairs == 0 && good_castorJets.size() > 0 && good_genJets.size() > 0 ){	
+					  //cout << "\t\t\t\t\tGo!" << endl;
 					// Pick a Castorjet and find the appropriate Gen Jet.
-    					  MyCastorJet castorjet = good_castorJets[ 0 ];
+					  int i_det = 0;
+    					  MyCastorJet castorjet = good_castorJets[ i_det ];
     					  double eta_det = castorjet.eta;
     					  double phi_det = castorjet.phi;
     					  double det_energy = castorjet.energy;
@@ -945,85 +936,19 @@ cout << "Variable bins done" << endl;
                                           double phidiff = fabs(phi_det-phi_gen);     if( phidiff > PI ){ phidiff = 2.*PI - phidiff; }
                                           double etadiff = fabs(eta_det-eta_gen);
                                           lowest_distance = sqrt( etadiff*etadiff + phidiff*phidiff );
-                                          double gen_energy = genjet_castor.Energy();		
-
-					  TString genjettype = "had";	
-
-					// Pick a Gen jet and find the appropriate Castor Jet
-					/*
-					  MyGenJet genjet_castor = (good_genJets)[0];
-					
-                                          double eta_gen = genjet_castor.Eta();
-                                          double phi_gen = genjet_castor.Phi();
                                           double gen_energy = genjet_castor.Energy();
 					
-					  int i_det = 0;
-					  bool matched = false;
-					  double lowest_distance = 10., lowest_phidiff = 10.;					
-					  int match_det;
-				  		  
-					//
-					// Dissect the jet to get hadronic/electromagnetic nature.
-					//
-					  int ipart = 0;
-					  bool isHad = false, isEM = false, isBoth = false;
-					  double eHad = 0., eEM = 0.;					 
-					  TString genjettype;
- 
 
-					  for(vector<MyGenPart>::iterator it = (genjet_castor.JetPart).begin() ;it !=  (genjet_castor.JetPart).end() ;it++,++ipart) {
-					    // cout << "\tipart\t" << ipart << "\t" << (*it).pdgId << endl;					   
-					    if(  (*it).pdgId  == 22 || ( fabs( (*it).pdgId ) >= 11 && fabs( (*it).pdgId ) <= 18) ){ isEM = true; eEM += (*it).Energy();}
-					    else if( fabs( (*it).pdgId ) > 100 ){ isHad = true; eHad += (*it).Energy();}
-					  }
-										
-
-					  // In case of hybrid jets
-					  if( isEM && isHad){
-					    
-					    if( eHad > eEM){
-					      if( eHad >= 2.*eEM ){ isEM = false; }
-					      else		 { isBoth = true; }
-					    }
-					    else{ 
-                                              if( eHad < 2.*eEM ){ isHad = false; }
-                                              else               { isBoth = true; }
-					    }
-					  } // End hybrids.
+					  //cout << "\t\t\t\t\t\tphidiff\t" << phidiff << endl;
+					  if( phidiff > phi_diff_max ){ 
+				   	    //continue;					    
+				   	    //cout << "\t\t\t\t\t\t\tSKIP" << endl;
+				   	    break;
+					  }		
 					  
-					  if     ( isHad ){ genjettype = "had"; }
-					  else if( isEM  ){ genjettype = "em"; }
-					  else if( isBoth){ genjettype = "both";}
+					  //cout << "\t\t\t\t\t\t\tKEEP" << endl;
+					  TString genjettype = "had";	
 
-					  //
-					  // Matching of jets.
-					  //
-
-  					  for( ; i_det < good_castorJets.size(); i_det++){
-					   
-                                            MyCastorJet castorjet = good_castorJets[ i_det ];
-                                            double eta_det = castorjet.eta;
-                                            double phi_det = castorjet.phi;
-
-					    double phidiff = fabs(phi_det-phi_gen);	if( phidiff > PI ){ phidiff = 2.*PI - phidiff; }
-					    double etadiff = fabs(eta_det-eta_gen);
-					    
-					    // Matching in phi.
-				            if( phidiff < lowest_phidiff ){ 
-					      lowest_phidiff = phidiff;
-					      match_det = i_det;
-					    }
-					  } // Loop over Castor jets.
-					
-					  // Fill in fake or match. 
-					  MyCastorJet castorjet = good_castorJets[ match_det ];
-					  double eta_det = castorjet.eta;
-					  double phi_det = castorjet.phi;
-                                          double phidiff = fabs(phi_det-phi_gen);     if( phidiff > PI ){ phidiff = 2.*PI - phidiff; }
-                                          double etadiff = fabs(eta_det-eta_gen);
-					  lowest_distance = sqrt( etadiff*etadiff + phidiff*phidiff );
-                                          double det_energy = castorjet.energy;
-					*/
 					  double depth_jet = castorjet.depth;	// depth
 					  double fhot_jet = castorjet.fhot;		// fhot
 					  double fem_jet = castorjet.fem;
@@ -1060,17 +985,8 @@ cout << "Variable bins done" << endl;
 					    }
 					  } // Not an electron.
 
-					/*
-					  cout < endl << endl << endl 
-					  << "\tEnergy\t" << det_energy << endl 
-					  << "\tDepth\t" << depth_jet << endl
-					  << "\tfhot\t" << fhot_jet << endl
-					  << "\tfem\t" << fem_jet << endl
-					  << "\tsigma_z\t" << sigmaz_jet << endl
-					  << "\twidth\t" << width_jet << endl;
-					*/
 					  // -- looking into distance information.
-					  // Leading jets.
+					  // Leading jets, no pair matched yet.
 					  if( matched_pairs == 0){
 					    response.Fill( det_energy, gen_energy); 
 					    
@@ -1157,11 +1073,6 @@ cout << "Variable bins done" << endl;
 					      hJER_per_eDet_none_det	->Fill( det_energy, JER_eDet);
 					    }
 
-					/*
-					    if( detjettype == "had" || detjettype == "em"){
-					      (JER_map[genjettype + "_" + detjettype]).Fill( JER );
-					*/
-					    
 					  }
 					  matched_pairs++;
 
@@ -1173,6 +1084,7 @@ cout << "Variable bins done" << endl;
                                             good_castorJets.erase( good_castorJets.begin() +  0 );
 					  }
 					} // While loop.
+					//} // For loop over det jets.
 
 					hMatched->Fill( matched_pairs );
 					
@@ -1191,8 +1103,6 @@ cout << "Variable bins done" << endl;
                                           response.Miss( gen_energy );
                                           hCastorJet_energy_misses->Fill( -50., gen_energy);
                                         }
-
-//					cout << endl << endl;
 						
 					// end of event, print status
 					if( ((i+1) % 10000) == 0) std::cout << i+1 <<"events done in file " << it << std::endl;
@@ -1263,7 +1173,6 @@ cout << "Variable bins done" << endl;
 
 	first += part;
 	//strcat(temp,part);
-//	sprintf(filename,"output_JetAnalyzer_radii_%s",first.c_str());
         if( !isData_) { sprintf(filename, date_ +"_Output_JetAnalyzer_radii_GEN_" + string_gen_radius + "_DET_" + string_det_radius + "_margin_%f_%i_%s", etamargin, counter_events, first.c_str()); }
         else{ sprintf(filename, date_ + "_Output_JetAnalyzer_radii_Data_" + string_det_radius + "_margin_%f_%i_%s", etamargin, counter_events, first.c_str()); }
 	TFile* output = new TFile(filename,"RECREATE");
@@ -1407,36 +1316,6 @@ cout << "Variable bins done" << endl;
 	hNjet_vs_Ejets_gen->Write();
         hNjet_vs_Ejets_det->Write();
 
-	// Study of jet radius-energy
-/*
-	hNjet_3_gen->Write();
-	hNjet_5_gen->Write();
-	hNjet_7_gen->Write();
-	
-	hJet_37_gen->Write();
-	hDistance_37_gen->Write();
-	hPhiDiff_37_gen->Write(); 
-	hEtaDiff_37_gen->Write(); 
-
-	hJet_57_gen->Write(); 
-	hDistance_57_gen->Write();
-	hPhiDiff_57_gen->Write(); 
-	hEtaDiff_57_gen->Write(); 
-
-	hNjet_3_det->Write(); 
-	hNjet_5_det->Write(); 
-	hNjet_7_det->Write(); 
-
-	hJet_37_det->Write(); 
-	hDistance_37_det->Write();
-	hPhiDiff_37_det->Write(); 
-	hEtaDiff_37_det->Write(); 
-
-	hJet_57_det->Write(); 
-	hDistance_57_det->Write();
-	hPhiDiff_57_det->Write();
-	hEtaDiff_57_det->Write(); 
-*/
 
 	response.Write();
 	response_all.Write();
