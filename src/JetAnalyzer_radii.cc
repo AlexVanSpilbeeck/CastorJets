@@ -76,7 +76,7 @@
 #define jetEThreshold_det 0. 
 #define EbinWidth 5.
 #define EbinWidth_rel 1.4
-#define phi_diff_max 0.1
+#define phi_diff_max 0.2
 
 #define jet_distance 10
 #define jet_distance_string "JER_allPairs__JetSorted_ak5"
@@ -589,7 +589,7 @@ cout << "Variable bins done" << endl;
 			/////////////////////////////////////////
 			// Hadron level code
 			/////////////////////////////////////////
-			
+/*			
 			if (!isData_) {
 				b_genParts->GetEntry(i);
 				
@@ -678,7 +678,7 @@ cout << "Variable bins done" << endl;
 				} // end if passedHadronCuts
 				
 			} // end if not data
-             
+             */
 			
 			
 			/////////////////////////////////////////
@@ -894,10 +894,10 @@ cout << "Variable bins done" << endl;
 					int matched_pairs = 0;
 				
 					// for( int i_det = 0; i_det < good_castorJets.size(); i_det++){	
-					//cout << "Events\t" << counter_events << "DET\t" << good_castorJets.size() << "\tGEN\t" << good_genJets.size() << endl; 
+					cout << "Events\t" << counter_events << "DET\t" << good_castorJets.size() << "\tGEN\t" << good_genJets.size() << endl; 
 
 					while( matched_pairs == 0 && good_castorJets.size() > 0 && good_genJets.size() > 0 ){	
-					  //cout << "\t\t\t\t\tGo!" << endl;
+					  cout << "\t\t\t\t\tGo!" << endl;
 					// Pick a Castorjet and find the appropriate Gen Jet.
 					  int i_det = 0;
     					  MyCastorJet castorjet = good_castorJets[ i_det ];
@@ -914,7 +914,8 @@ cout << "Variable bins done" << endl;
 					  // Matching of jets.
 					  //
 
-  					  for( ; i_gen < good_genJets.size(); i_gen++){
+				
+  					  while (i_gen < good_genJets.size() && !matched){
 					   
                                             MyGenJet genjet_castor = (good_genJets)[i_gen];
                                             double eta_gen = genjet_castor.Eta();
@@ -924,10 +925,13 @@ cout << "Variable bins done" << endl;
 					    double etadiff = fabs(eta_det-eta_gen);
 					    
 					    // Matching in phi.
-				            if( phidiff < lowest_phidiff ){ 
+				            if( phidiff < phi_diff_max ){ 
 					      lowest_phidiff = phidiff;
 					      match_gen = i_gen;
+					      matched = true;
+		
 					    }
+					    else{ i_gen++; }
 					  } // Loop over Castor jets.
 						  
                                           MyGenJet genjet_castor = good_genJets[ match_gen ];
