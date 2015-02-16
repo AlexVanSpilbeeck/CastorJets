@@ -134,7 +134,63 @@ int main(int argc, char *argv[])
                 }
         }
 
+	// MC without a pt cut on gen level.
+//pnfs/iihe/cms/store/user/avanspil/MinBias_TuneZ2star_HFshowerLibrary_7TeV_pythia6/CastorTree_MC_MinBias_TuneZ2star_7TeV_pythia6_LowPU2010_53XRECOwithCorrector_no_gen_pTcut/56a77bcc5e2daa0d1a676919111916e5/CastorTree_MC_7TeV_42X_53XRECOwithCorrector_110_1_ZP8.root
+        if (strcmp(argv[1],"Pythia6Z2star_noPtCut")==0) {
+                if (strcmp(argv[2],"7000")==0) {	
+                        if (strcmp(argv[3],"JetAnalyzer_radii") == 0) {
+                                std::cout << "We'll process the Pythia6 Z2star 7TeV MC tree now with the JetAnalyzer" << std::endl;
+                                m->makeJetHistos_radii("dcap://maite.iihe.ac.be/pnfs/iihe/cms/store/user/avanspil/"
+                                                          "/MinBias_TuneZ2star_HFshowerLibrary_7TeV_pythia6/"
+                                                          "CastorTree_MC_MinBias_TuneZ2star_7TeV_pythia6_LowPU2010_53XRECOwithCorrector_no_gen_pTcut/56a77bcc5e2daa0d1a676919111916e5/",
+                                                          "CastorTree_MC_7TeV_42X_53XRECOwithCorrector_",false,"Pythia6_Z2star_Default_varyR_",
+                                                          argv[4],
+                                                          argv[5],
+                                                          atoi(argv[6]),
+                                                          argv[7]);
+                        }
+                }
+        }	
+
+	//////////////////////////////////////////////////////////////////////////
+	// Make a stripped down tree: only good events with only good gen jets. //
+	//////////////////////////////////////////////////////////////////////////
+        if (strcmp(argv[1],"Pythia6Z2star_noPtCut")==0) {
+                if (strcmp(argv[2],"7000")==0) {	
+                        if (strcmp(argv[3],"JetAnalyzer_stripTheTree") == 0) {
+                                std::cout << "We'll process the Pythia6 Z2star 7TeV MC tree now with the JetAnalyzer" << std::endl;
+                                m->makeJetHistos_stripTheTree("dcap://maite.iihe.ac.be/pnfs/iihe/cms/store/user/avanspil/"
+                                                          "/MinBias_TuneZ2star_HFshowerLibrary_7TeV_pythia6/"
+                                                          "CastorTree_MC_MinBias_TuneZ2star_7TeV_pythia6_LowPU2010_53XRECOwithCorrector_no_gen_pTcut/56a77bcc5e2daa0d1a676919111916e5/",
+                                                          "CastorTree_MC_7TeV_42X_53XRECOwithCorrector_",false,"Pythia6_Z2star_Default_varyR_",
+                                                          argv[4],
+                                                          argv[5],
+                                                          atoi(argv[6]),
+                                                          argv[7]);
+                        }
+                }
+        }	
+        //////////////////////////////////////////////////////////
+        // Investigate the tree created with the command above. //
+        //////////////////////////////////////////////////////////
+
+        if (strcmp(argv[1],"Pythia6Z2star_noPtCut")==0) {
+                if (strcmp(argv[2],"7000")==0) {
+                        if (strcmp(argv[3],"JetAnalyzer_radii_strippedTree") == 0) {
+                                std::cout << "We'll process the Pythia6 Z2star 7TeV MC tree now with the JetAnalyzer" << std::endl;
+                                m->makeJetHistos_radii_strippedTree("/user/avanspil/Castor_Analysis/CMSSW_4_2_10_patch2/src/UACastor/CastorTree/Analysis/LoopRootFiles/",
+                                                          false,"",
+                                                          argv[4],	// jet algo - gen
+                                                          argv[5],	// jet algo - det
+                                                          atoi(argv[6]),// N events
+                                                          argv[7],	// label/date
+							  argv[8]);	// Name of investigated file.
+                        }
+                }
+       }
 	
+
+
 	delete m;
 	
 	return(0);

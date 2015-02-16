@@ -11,7 +11,7 @@
 */
 
 #if !defined(__CINT__) || defined(__MAKECINT__)
-#include "JetAnalyzer_radii.h"
+#include "JetAnalyzer_radii_strippedTree.h"
 #include "HistoRetriever.h"
 
 //STANDARD ROOT INCLUDES
@@ -76,16 +76,10 @@
 #define jetEThreshold_det 0. 
 #define EbinWidth 5.
 #define EbinWidth_rel 1.4
-#define phi_diff_max 0.1
-
-#define jet_distance 10
-#define jet_distance_string "JER_allPairs__JetSorted_ak5"
-//#define gen_radius_ "ak7"
-//#define det_radius_ "ak7"
-#define GenJetContained 0.5
-//#define totalEvents_ 10000
+#define phi_diff_max 0.2
+#define castorTowers_min 2
 #define PI 3.14159265359
-
+#define GenJetContained 0.5
 
 #include "../../../RooUnfold-1.1.1/src/RooUnfold.h"
 //#include "../../../RooUnfold-1.1.1/src/RooUnfoldResponse.h"
@@ -93,14 +87,14 @@
 
 
 
-TFile *JetAnalyzer_radii::currentStaticTFile_ = new TFile();
+TFile *JetAnalyzer_radii_strippedTree::currentStaticTFile_ = new TFile();
 
-JetAnalyzer_radii::JetAnalyzer_radii(TString inputdir, TObjArray* filelist, bool isData, const char* outputname, TString gen_radius, TString det_radius, int totalEvents, TString date) {
+JetAnalyzer_radii_strippedTree::JetAnalyzer_radii_strippedTree(TString inputdir, bool isData, const char* outputname, TString gen_radius, TString det_radius, int totalEvents, TString date, TString filename) {
     
-	std::cout << "constructing JetAnalyzer_radii class..." << std::endl;
+	std::cout << "constructing JetAnalyzer_radii_strippedTree class..." << std::endl;
 	
     inputdir_ = inputdir;
-    filelist_ = filelist;
+    filename_ = filename;
     isData_ = isData;
     outputname_ = outputname;
     gen_radius_ = gen_radius;
@@ -121,20 +115,19 @@ JetAnalyzer_radii::JetAnalyzer_radii(TString inputdir, TObjArray* filelist, bool
     
 }
 
-JetAnalyzer_radii::~JetAnalyzer_radii() { }
+JetAnalyzer_radii_strippedTree::~JetAnalyzer_radii_strippedTree() { }
 
-void JetAnalyzer_radii::Loop() {
+void JetAnalyzer_radii_strippedTree::Loop() {
 
 #ifdef __CINT__
   gSystem->Load("../../../RooUnfold-1.1.1/libRooUnfold.so");
 #endif
 	
 	
-	std::cout << " JetAnalyzer_radii Loop function is started " << std::endl;
+	std::cout << " JetAnalyzer_radii_strippedTree Loop function is started " << std::endl;
 	
 	TString tstring = outputname_;
 	std::cout << " TString outputname_ = " << tstring << std::endl;
-	TString string_tag = jet_distance_string;
 	TString string_det_radius = det_radius_;
         TString string_gen_radius;	if (!isData_){ string_gen_radius = gen_radius_; }
  
@@ -404,72 +397,19 @@ cout << "Variable bins done" << endl;
 	hMatched->Sumw2();
 	hUnmatched->Sumw2();
 	
-	TIter       next(filelist_); 
+
 	TObjString* fn = 0;
 	
 	bool isMC = false;
     
 	int counter_jer = 0;
 	int counter_events = 0;
+	int counter_match = 0;
 	
-	std::cout << "start looping over files" << std::endl;
+	std::cout << "start looping over files\t" << filename_ << std::endl;
 	
-	// start file loop
-	while((fn = (TObjString*)next()) && counter_events < totalEvents_) { 
-//      while((fn = (TObjString*)next()) ) {
-		
-		currentfile_.Clear();
-		currentTFile_->Clear();
-		
-		currentfile_ = fn->GetString();
-		
-		std::cout << "opening file " << currentfile_ << " ... " << std::endl;
-		
-		TStopwatch *timer = new TStopwatch();
-		TThread *fileopener;
-		fileopener = new TThread("fileopener",(void(*) (void *))&OpenROOTFile,(JetAnalyzer_radii*) this);
-		TThread::SetCancelAsynchronous();
-		TThread::SetCancelOn();
-		fileopener->Run();
-		
-		bool fileopen = false;
-		bool timeout = true;
-		while (timer->RealTime() < 30) {
-			if (fileopener->GetState() != TThread::kRunningState) {
-				// file open thread is not running anymore, was it successful?
-				// set the static TFile to the instance one
-				setCurrentTFile();
-				timeout = false;
-				break;
-			} 
-			
-			timer->Continue();
-			gSystem->Sleep(1000);
-		}
-		
-		// after the time, stop & delete the open thread
-		TThread::Kill("fileopener");
-		TThread::Delete(fileopener);
-		delete fileopener;
-		delete timer;
-		
-		if (timeout) {
-			std::cout << "file open thread has timed out, go to next file in the list" << std::endl;
-			continue;
-		} else {
-			// is this instance open?
-			if (currentTFile_->IsOpen()) {
-				std::cout << "the currentTFile_ is correctly opened" << std::endl;
-				fileopen = true;
-			}
-		}
-		
-		if (!fileopen) {
-			std::cout << "no timeout, but the file could not be opened correctly: going to the next file in the list" << std::endl;
-			continue;
-		}
-		
-		
+	TFile * currentfile_ = new TFile( filename_, "Read");
+
 		//////////////////////////////////////////////////
 		// Get tree from the files and define all branches
 		//////////////////////////////////////////////////
@@ -477,326 +417,52 @@ cout << "Variable bins done" << endl;
 		std::cout << "We are working with Det " << det_radius_ << " and Gen " << gen_radius_ << endl;
 
 		// get tree from file
-		TTree *tree = new TTree("CastorTree","");
-		currentTFile_->GetObject("castortree/CastorTree",tree);
+		TTree *tree;// = new TTree("CastorTree","");
+		tree = (TTree*) currentfile_->Get("CastorTree");
+		
+		
+		
+	
+	// start file loop
+	int treesize = tree->GetEntriesFast();
+	
+//	for(int counter_events = 0; counter_events < totalEvents_ && counter_events < treesize; counter_events++ ) {		
+
 		
 		// define objects and branches
-		MyEvtId *evtid = NULL;
-        MyGenKin *evtkin = NULL;
-		MyBeamSpot *BeamSpot = NULL;
-		MyHLTrig *HLTrig = NULL;
-		MyL1Trig *L1Trig = NULL;
-		std::vector<MyVertex> *Vertices = NULL;
-		std::vector<MyCastorRecHit> *CastorRecHits = NULL;
-		std::vector<MyCastorTower> *CastorTowers = NULL;
+
+		cout << "Got tree" << endl;
+		
 		std::vector<MyCastorJet> *CastorJets = NULL;
-		std::vector<MyJet> *PFJets = NULL;
-		std::vector<MyGenPart> *genParts = NULL;
-		std::vector<MyCaloTower> *caloTowers = NULL;
-		std::vector<MyGenJet> *genJets = NULL;
-		std::vector<MyGenJet> *chargedGenJets = NULL;
-		std::vector<MyTrackJet> *trackJets = NULL;
-		  // Radius-energy study.
-		std::vector<MyCastorJet> *CastorJets_ak3 = NULL;
-                std::vector<MyCastorJet> *CastorJets_ak5 = NULL;
-                std::vector<MyCastorJet> *CastorJets_ak7 = NULL;
-                std::vector<MyGenJet> *genJets_ak3 = NULL;
-                std::vector<MyGenJet> *genJets_ak5 = NULL;
-                std::vector<MyGenJet> *genJets_ak7 = NULL;
+		TBranch *b_CastorJets = tree->GetBranch("ak5castorJet");
+		b_CastorJets->SetAddress(&CastorJets);
 
+                std::vector<MyGenJet> *CastorGenJets = NULL;
+		TBranch *b_CastorGenJets = NULL;	
+		if (!isData_) b_CastorGenJets = tree->GetBranch("CastorGenJets");
+		if (!isData_) b_CastorGenJets->SetAddress(&CastorGenJets);
 		
-		TBranch *b_evtid = tree->GetBranch("EvtId");
-        TBranch *b_evtkin = NULL;
-        if (!isData_) b_evtkin = tree->GetBranch("GenKin");
-		TBranch *b_BeamSpot = tree->GetBranch("beamSpot");
-		TBranch *b_HLTrig = tree->GetBranch("HLTrig");
-		TBranch *b_L1Trig = tree->GetBranch("L1Trig");
-		TBranch *b_vertices = tree->GetBranch("primaryVertex");
-		TBranch *b_castorrechits = tree->GetBranch("castorRecHit");
-		TBranch *b_castortowers = tree->GetBranch("castorTower");
-		TBranch *b_castorjets = tree->GetBranch("castorJet");
 
-		TBranch *b_castorjets_ak3 = tree->GetBranch("ak3castorJet");	b_castorjets_ak3->SetAddress(&CastorJets_ak3);
-                TBranch *b_castorjets_ak5 = tree->GetBranch("ak5castorJet");    b_castorjets_ak5->SetAddress(&CastorJets_ak5);
-                TBranch *b_castorjets_ak7 = tree->GetBranch("ak7castorJet");    b_castorjets_ak7->SetAddress(&CastorJets_ak7);
-
-		if( string_det_radius.Contains("ak3") ){ b_castorjets = tree->GetBranch("ak3castorJet"); }
-                if( string_det_radius.Contains("ak5") ){ b_castorjets = tree->GetBranch("ak5castorJet"); }
-                if( string_det_radius.Contains("ak7") ){ b_castorjets = tree->GetBranch("ak7castorJet"); }
-//		else{ b_castorjets = tree->GetBranch("castorJet"); }
-		
-//                TBranch *b_castorjets = tree->GetBranch("ak7castorJet");
-		TBranch *b_PFJets = tree->GetBranch("pfJet");
-		TBranch *b_genParts = NULL;
-		if (!isData_) b_genParts = tree->GetBranch("GenPart");
-		TBranch *b_caloTowers = tree->GetBranch("caloTower");
-		TBranch *b_genJets = NULL;
-		TBranch *b_chargedGenJets = NULL;
-//		if (!isData_) b_genJets = tree->GetBranch("GenJet");
-                if (!isData_ && string_gen_radius.Contains("ak3")) b_genJets = tree->GetBranch("ak3GenJet");
-                if (!isData_ && string_gen_radius.Contains("ak5")) b_genJets = tree->GetBranch("ak5GenJet");
-                if (!isData_ && string_gen_radius.Contains("ak7")) b_genJets = tree->GetBranch("ak7GenJet");		
-		if (!isData_) b_chargedGenJets = tree->GetBranch("ChargedGenJet");
-		TBranch *b_trackJets = tree->GetBranch("trackJet");
-
-                TBranch *b_genJets_ak3 = NULL;
-                TBranch *b_genJets_ak5 = NULL;
-                TBranch *b_genJets_ak7 = NULL;
-
-		if(!isData_){
-		  b_genJets_ak3 = tree->GetBranch("ak3GenJet");
-                  b_genJets_ak5 = tree->GetBranch("ak5GenJet");
-                  b_genJets_ak7 = tree->GetBranch("ak7GenJet");
-		}
-		
-		b_evtid->SetAddress(&evtid);
-        if (!isData_) b_evtkin->SetAddress(&evtkin);
-		b_BeamSpot->SetAddress(&BeamSpot);
-		b_HLTrig->SetAddress(&HLTrig);
-		b_L1Trig->SetAddress(&L1Trig);
-		b_vertices->SetAddress(&Vertices);
-		b_castorrechits->SetAddress(&CastorRecHits);
-		b_castortowers->SetAddress(&CastorTowers);
-		cout << "Before" << endl;
-		b_castorjets->SetAddress(&CastorJets);
 		cout << "After" << endl;
-		b_PFJets->SetAddress(&PFJets);
-		if (!isData_) b_genParts->SetAddress(&genParts);
-		b_caloTowers->SetAddress(&caloTowers);
-		if (!isData_) b_genJets->SetAddress(&genJets);
-		if (!isData_) b_chargedGenJets->SetAddress(&chargedGenJets);
-		b_trackJets->SetAddress(&trackJets);
+
 		
 		int Nevents = tree->GetEntriesFast();
 		std::cout << "file opened, events in this file = " << Nevents << std::endl;
 		totalevents += Nevents;
 		
 		// start event loop
-		for (int i=0; i<Nevents && i < totalEvents_;i++) {
-			counter_events++;
+		for( counter_events = 0; counter_events < totalEvents_ && counter_events < treesize; counter_events++ ) {		
+		
 			if( counter_events%1000== 0){ cout << "\t" << counter_events << "\tpassed" << endl; }
-            
-			bool passedHadronCuts = false;
-			bool passedDetectorCuts = false;
-			
-			double xix = 10;
-			double xiy = 10;
-			double xi = 10;
-			double xidd = 10e10;
-			double ymax = -1;
-            
-			
-			/////////////////////////////////////////
-			// Hadron level code
-			/////////////////////////////////////////
-/*			
-			if (!isData_) {
-				b_genParts->GetEntry(i);
-				
-				// calculate xi of the event
-				
-				// sort genParticles in y, from y_min to y_max
-				std::vector<MyGenPart> myTempParticles;
-				std::vector<MyGenPart> myRapiditySortedParticles;
-				// copy only final stable particles with realistic Rapidity in tempvector
-				for (unsigned int ipart=0;ipart<genParts->size();ipart++) {
-					if ((*genParts)[ipart].status == 1) 
-						myTempParticles.push_back((*genParts)[ipart]);
-				}
-				// do actual sorting
-				while (myTempParticles.size() != 0) {
-					double min_y = 100000;
-					int min_y_pos = -1;
-					for (unsigned int ipart = 0;ipart<myTempParticles.size();ipart++) {
-						if (myTempParticles[ipart].Rapidity() < min_y) {
-							min_y = myTempParticles[ipart].Rapidity();
-							min_y_pos = ipart;
-						}
-					}
-					myRapiditySortedParticles.push_back(myTempParticles[min_y_pos]);
-					myTempParticles.erase(myTempParticles.begin()+min_y_pos);
-				}
-				
-				// find deltaymax
-				double deltaymax = 0;
-				int deltaymax_pos = -1;
-				for (unsigned int ipart=0;ipart<myRapiditySortedParticles.size()-1;ipart++) {
-					double deltay = myRapiditySortedParticles[ipart+1].Rapidity() - myRapiditySortedParticles[ipart].Rapidity();
-					if (deltay > deltaymax) {
-						deltaymax = deltay;
-						deltaymax_pos = ipart;
-					}
-				}
-				ymax = deltaymax;
-				
-				// calculate Mx2 and My2
-				long double XEtot = 0;
-				long double XPxtot = 0;
-				long double XPytot = 0;
-				long double XPztot = 0;
-				long double YEtot = 0;
-				long double YPxtot = 0;
-				long double YPytot = 0;
-				long double YPztot = 0;
-				
-				for (int ipart=0;ipart<=deltaymax_pos;ipart++) {
-					XEtot += myRapiditySortedParticles[ipart].E();
-					XPxtot += myRapiditySortedParticles[ipart].Px();
-					XPytot += myRapiditySortedParticles[ipart].Py();
-					XPztot += myRapiditySortedParticles[ipart].Pz();
-				}
-				long double Mx2 = -1.;
-				Mx2 = XEtot*XEtot - XPxtot*XPxtot - XPytot*XPytot - XPztot*XPztot;
-				
-				for (unsigned int ipart=deltaymax_pos+1;ipart<myRapiditySortedParticles.size();ipart++) {
-					YEtot += myRapiditySortedParticles[ipart].E();
-					YPxtot += myRapiditySortedParticles[ipart].Px();
-					YPytot += myRapiditySortedParticles[ipart].Py();
-					YPztot += myRapiditySortedParticles[ipart].Pz();
-				}
-				long double My2 = YEtot*YEtot - YPxtot*YPxtot - YPytot*YPytot - YPztot*YPztot;
-				
-				// calculate xix and xiy
-				xix = Mx2/(7000*7000);
-				xiy = My2/(7000*7000);
-				
-				// xi of event is max
-				xi = std::max(xix,xiy);
-				xidd=xix*xiy*7000*7000/(0.938*0.938);
-                
-                    
-                // combine selection
-        		// 7 TeV Xi cuts
-				if (xix>0.04 || xiy>0.1 || xidd>0.5) passedHadronCuts = true;
 
-				
-				// if event passed hadron cut, execute analysis code
-				if (passedHadronCuts) {
-					
-					
-					
-				} // end if passedHadronCuts
-				
-			} // end if not data
-             */
 			
 			
 			/////////////////////////////////////////
 			// Do stuff before filters
 			/////////////////////////////////////////
-						
-			b_evtid->GetEntry(i);
-			b_HLTrig->GetEntry(i);
-			b_L1Trig->GetEntry(i);
-			b_vertices->GetEntry(i);
-			b_caloTowers->GetEntry(i);
-			b_castorrechits->GetEntry(i);
-			b_castortowers->GetEntry(i);
-			
-			// only process a certain run
-			//if (evtid->Run != 135521) continue; // go to next event
-			
-			/////////////////////////////////////////
-			// Filter the results
-			/////////////////////////////////////////
-			
-			if (isData_) {
-			
-				// filter results
-				// filter on phys declared bit
-				bool physDeclresult = HLTrig->HLTmap["physDeclpath"];
-				
-				// filter on castor invalid data
-				bool castorInvalidDataFilterresult = HLTrig->HLTmap["castorInvalidDataFilterpath"];
-				
-				// filter out scraping events
-				bool noscrapingresult = HLTrig->HLTmap["noscrapingpath"];
-				
-				bool gooddata = physDeclresult && castorInvalidDataFilterresult && noscrapingresult;
-				
-				// L1 filter
+			b_CastorGenJets->GetEntry( counter_events );
+			b_CastorJets->GetEntry( counter_events );
 
-				bool L1_BX = L1Trig->fTechDecisionBefore[0];
-				bool L1_Veto = !L1Trig->fTechDecisionBefore[36] && !L1Trig->fTechDecisionBefore[37] && !L1Trig->fTechDecisionBefore[38] && !L1Trig->fTechDecisionBefore[39];
-				
-				bool L1_BSC = L1Trig->fTechDecisionBefore[40] || L1Trig->fTechDecisionBefore[41]; // default value for 900 GeV or 7000 GeV 
-				
-				bool HLT_BSC = true; // default value for 900 GeV or 7000 GeV (do we need an HLT here?)
-				
-				bool TriggerSelection = false;
-                
-				TriggerSelection = L1_BX && L1_Veto && L1_BSC && HLT_BSC;
-				
-				// ask for activity in HF
-				bool HF_Activity = true;
-				bool HFplus = false;
-				bool HFminus = false;
-				for (unsigned int itow=0;itow<caloTowers->size();itow++) {
-					MyCaloTower mytow = (*caloTowers)[itow];
-					if (mytow.hasHF && mytow.Energy() > 4. && mytow.zside == 1 && mytow.Eta() > 3.23 && mytow.Eta() < 4.65) HFplus = true;
-					if (mytow.hasHF && mytow.Energy() > 4. && mytow.zside == -1 && mytow.Eta() < -3.23 && mytow.Eta() > -4.65) HFminus = true;
-				}
-				if (!HFplus || !HFminus) HF_Activity = false; // real HF condition... 
-				
-				// ask for activity in CASTOR
-				bool CASTOR_Activity = false;
-				// if at least 1 tower is above noise threshold, set CASTOR activity to true
-				if (CastorTowers->size() > 0) CASTOR_Activity = true;
-				
-				// get vertex info
-				// do the oneGoodVertexFilter
-				bool wehaveGoodVertex = false;
-				for (unsigned int iVert=0;iVert<Vertices->size();iVert++) {
-					MyVertex vertex = (*Vertices)[iVert];
-					if (vertex.isGoodVertex) wehaveGoodVertex = true;
-				}
-				
-				if (gooddata && TriggerSelection && HF_Activity && CASTOR_Activity && wehaveGoodVertex) passedDetectorCuts = true;
-				
-			} else {
-				
-				// MC
-				
-				// ask for activity in HF
-				bool HF_Activity = true; 
-				bool HFplus = false;
-				bool HFminus = false;
-				for (unsigned int itow=0;itow<caloTowers->size();itow++) {
-					MyCaloTower mytow = (*caloTowers)[itow];
-					if (mytow.hasHF && mytow.Energy() > 4. && mytow.zside == 1 && mytow.Eta() > 3.23 && mytow.Eta() < 4.65) HFplus = true;
-					if (mytow.hasHF && mytow.Energy() > 4. && mytow.zside == -1 && mytow.Eta() < -3.23 && mytow.Eta() > -4.65) HFminus = true;
-				}
-				if (!HFplus || !HFminus) HF_Activity = false; // real HF condition... 
-				
-				// ask for activity in CASTOR
-				bool CASTOR_Activity = false;
-				// if at least 1 tower is above noise threshold, set CASTOR activity to true
-				if (CastorTowers->size() > 0) CASTOR_Activity = true;
-                
-				// get vertex info
-				// do the oneGoodVertexFilter
-				bool wehaveGoodVertex = false;
-				for (unsigned int iVert=0;iVert<Vertices->size();iVert++) {
-					MyVertex vertex = (*Vertices)[iVert];
-					if (vertex.isGoodVertex) wehaveGoodVertex = true;
-				}
-				
-				if (HF_Activity && CASTOR_Activity && wehaveGoodVertex) passedDetectorCuts = true;
-                
-			}
-				
-			/////////////////////////////////////////
-			// Do stuff after filters
-			/////////////////////////////////////////
-			
-			// get all the remaining branch entries
-			b_trackJets->GetEntry(i);
-                        if(!isData_){
-			  b_genJets->GetEntry(i);
-                          b_chargedGenJets->GetEntry(i);
-                        }
-				
-			if (passedDetectorCuts) {
 				
 				
 				/////////////////////////////////////////
@@ -804,49 +470,20 @@ cout << "Variable bins done" << endl;
 				/////////////////////////////////////////
 				
 				// only fill the histograms when there's 1 vertex (filter out pile-up)
-				if (Vertices->size() == 1) {
-					
-					// get event id stuff
-					if( ((i+1) % 10000) == 0) cout << " run " << evtid->Run << " isData = " << evtid->IsData << " lumiblock " << 
-						evtid->LumiBlock << " event " << evtid->Evt << endl; 
-					if (!evtid->IsData) isMC = true;
-					
-					// calculate energy flow in CASTOR
-					double CASTOReflow = 0;
-					
-					for (unsigned int j=0;j<CastorRecHits->size();j++) {
-						MyCastorRecHit rechit = (*CastorRecHits)[j];
-						//if (rechit.bad) std::cout << " found bad rechit: channel " << rechit.cha << std::endl;
-						if (!rechit.bad) {
-							hCASTOReflow_channel[rechit.cha-1]->Fill(rechit.energy);
-							if (rechit.cha <= 80) CASTOReflow += rechit.energy;
-							h2CASTOReflow_grid->Fill(rechit.sec,rechit.mod,rechit.energy);
-						}
-					}
-				
-					// tower multiplicity code
-					hCASTORTowerMulti->Fill(CastorTowers->size());
-					
-					// fill all minbias eflow histos
-					hCASTOReflow->Fill(CASTOReflow);
-										
-					// ------------------------
-					// No central jet required.		
 
-					vector<MyCastorJet> good_castorJets;
-					vector<MyGenJet> good_genJets;
+				//cout << "Det jets\t" << CastorJets->size() << "\t\tGen jets\t" << CastorGenJets->size() << endl;
+
 
 					// analyse castor jets
 					int NCastorJets = 0;
 					vector<double> det_casjet, gen_casjet_energy;
-					b_castorjets->GetEntry(i);
 					for (unsigned int j=0;j<CastorJets->size();j++) {
 						MyCastorJet casjet = (*CastorJets)[j];
 						if (casjet.energy > jetEThreshold_det) {
 							NCastorJets++;
 							hCastorJet_energy->Fill(casjet.energy);
 								det_casjet.push_back(casjet.energy); 
-								good_castorJets.push_back( casjet );
+							//	CastorJets.push_back( casjet );
 
 							hCastorJet_pt->Fill(casjet.energy*sin(2*atan(exp(5.9))));
 							hCastorJet_em->Fill(casjet.eem);
@@ -863,44 +500,28 @@ cout << "Variable bins done" << endl;
 					}
 					hCastorJet_multi->Fill(NCastorJets);
 
-					// -------------------------
-					// AVS - no Central jet required					
-					if(!isData_){
-					  for(int jet = 0; jet < genJets->size(); jet++){
-					    MyGenJet currentJet = (*genJets)[jet];
-					    //if( counter_events%1000 == 0) { cout << "\tGenjet\t" << jet << "\twith energy\t" << currentJet.Energy() << "\tand pT\t" << currentJet.Pt() << endl; }
-					    hGenJet_energy->Fill( currentJet.Energy() );
-					    if( currentJet.Eta() < (-5.2 - GenJetContained) && currentJet.Eta() > (-6.6 + GenJetContained) && currentJet.Energy() > jetEThreshold_gen){
-					      gen_casjet_energy.push_back( currentJet.Energy() );
-					      hCastorJet_energy_gen->Fill( currentJet.Energy() );
-                                              hCastorJet_pt_gen->Fill( currentJet.Pt() );
-					      good_genJets.push_back( currentJet );
-					    }
-					  }
-					}
 	
 					/**********************
 					 * ********************
 					 * *******************/
 
-					// Get the number of jets and the leading jet energy.
-				        if( good_genJets.size() > 0) { hNjet_vs_Ejets_gen->Fill( good_genJets.size(), 	(good_genJets[ 0 ]).Energy() ); }
-                                        else{ hNjet_vs_Ejets_gen->Fill(0.,0.); }
-                                        if( good_castorJets.size() > 0) { hNjet_vs_Ejets_det->Fill( good_castorJets.size(), (good_castorJets[ 0 ]).energy ); }
-					else{ hNjet_vs_Ejets_det->Fill(0., 0.); }
-
 					// Match DET and GEN jets. 
-					hNumber_of_match_jets->Fill( good_castorJets.size(), good_genJets.size());                             
+					hNumber_of_match_jets->Fill( CastorJets->size(), CastorGenJets->size());                             
 					int matched_pairs = 0;
 				
-					// for( int i_det = 0; i_det < good_castorJets.size(); i_det++){	
-					//cout << "\n\nEvents\t" << counter_events << "\tDET\t" << good_castorJets.size() << "\tGEN\t" << good_genJets.size() << endl; 
+					// for( int i_det = 0; i_det < CastorJets.size(); i_det++){	
+					// cout << "\n\nEvents\t" << counter_events << "\tDET\t" << CastorJets->size() << "\tGEN\t" << CastorGenJets->size() << endl; 
 
-					while( matched_pairs == 0 && good_castorJets.size() > 0 && good_genJets.size() > 0 ){	
-					  //cout << "\t\t\t\t\tGo!" << endl;
-					// Pick a Castorjet and find the appropriate Gen Jet.
+					while( matched_pairs == 0 && CastorJets->size() > 0 && CastorGenJets->size() > 0 ){	
+					  // cout << "\t\t\t\t\tGo!" << endl;
+					  // Pick a Castorjet and find the appropriate Gen Jet.
 					  int i_det = 0;
-    					  MyCastorJet castorjet = good_castorJets[ i_det ];
+			
+					  // SELECTION -- number of towers.
+    					  MyCastorJet castorjet = (*CastorJets)[ i_det ];
+//					  if( castorjet.ntower < castorTowers_min ){ break; };
+					  cout << "Event\t\t" << counter_events << "\tCastor jet\t" << i_det << "\tnTowers\t" << castorjet.ntower << "\tphi\t" << castorjet.phi << endl;
+
     					  double eta_det = castorjet.eta;
     					  double phi_det = castorjet.phi;
     					  double det_energy = castorjet.energy;
@@ -910,23 +531,18 @@ cout << "Variable bins done" << endl;
                                           double lowest_distance = 10., lowest_phidiff = 10.;                                   
                                           int match_gen;
 
-					  //
+					  
 					  // Matching of jets.
-					  //
-
-  					  //for( ; i_gen < good_genJets.size(); i_gen++){
-  					  while( !matched && i_gen < good_genJets.size()){
-                                            MyGenJet genjet_castor = (good_genJets)[i_gen];
+  					  while( !matched && i_gen < CastorGenJets->size()){
+                                            MyGenJet genjet_castor = (*CastorGenJets)[i_gen];
                                             double eta_gen = genjet_castor.Eta();
                                             double phi_gen = genjet_castor.Phi();
-
 					    double phidiff = fabs(phi_det-phi_gen);	if( phidiff > PI ){ phidiff = 2.*PI - phidiff; }
 					    double etadiff = fabs(eta_det-eta_gen);
-				    	    // cout << Events\t" << counter_events << "\tGEN\t" << i_gen << "\teta\t" << eta_gen << "\tphidiff\t" << phidiff << endl;
+				    	    //cout << "Events\t" << counter_events << "\tGEN\t" << i_gen << "\teta\t" << eta_gen << "\tphidiff\t" << phidiff << endl;
 
-					    
 					    // Matching in phi.
-				            if( phidiff < phi_diff_max ){ // Matching to hardest gen. jet within phi range.
+    				            if( phidiff < phi_diff_max ){ // Matching to hardest gen. jet within phi range.
 					      // cout << cout << "Events\t" << counter_events << "\tGEN\t" << i_gen << "\tphidiff\t" << phidiff << "\tMatch\t" << endl;
 					      lowest_phidiff = phidiff;
 					      match_gen = i_gen;
@@ -937,25 +553,19 @@ cout << "Variable bins done" << endl;
 					  } // Loop over Castor jets.
 						  
 					  if( !matched ){ 
-					    // cout << "Events\t" << counter_events << "\t" << good_genJets.size() << "\tgen jets but not one suited" << endl;
+					    // cout << "Events\t" << counter_events << "\t" << CastorGenJets->size() << "\tgen jets but not one suited" << endl;
 					    break; 
 					  }
+					  // cout << "Events\t" << counter_events << "\t" << CastorGenJets->size() << "\tMatch with\t" << lowest_phidiff << endl;
+					  counter_match++;
 
-                                          MyGenJet genjet_castor = good_genJets[ match_gen ];
+                                          MyGenJet genjet_castor = (*CastorGenJets)[ match_gen ];
                                           double eta_gen = genjet_castor.Eta();
                                           double phi_gen = genjet_castor.Phi();
                                           double phidiff = fabs(phi_det-phi_gen);     if( phidiff > PI ){ phidiff = 2.*PI - phidiff; }
                                           double etadiff = fabs(eta_det-eta_gen);
                                           lowest_distance = sqrt( etadiff*etadiff + phidiff*phidiff );
-                                          double gen_energy = genjet_castor.Energy();
-					
-
-					  //cout << "\t\t\t\t\t\tphidiff\t" << phidiff << endl;
-					  if( phidiff > phi_diff_max ){ 
-				   	    //continue;					    
-				   	    //cout << "\t\t\t\t\t\t\tSKIP" << endl;
-				   	    break;
-					  }		
+                                          double gen_energy = genjet_castor.Energy();	
 					  
 					  //cout << "\t\t\t\t\t\t\tKEEP" << endl;
 					  TString genjettype = "had";	
@@ -1021,8 +631,8 @@ cout << "Variable bins done" << endl;
 
 					  hCastorJet_energy_ratio->Fill( gen_energy/det_energy, det_energy);
 					  /* Remove det and gen jet from vector. */
-					  good_castorJets.erase( good_castorJets.begin() + 0 ); // + 0 because we start from Castorjets.
-					  good_genJets.erase( good_genJets.begin() + i_gen );
+					  CastorJets->erase( CastorJets->begin() + 0 ); // + 0 because we start from Castorjets.
+					  CastorGenJets->erase( CastorGenJets->begin() + i_gen );
 					  // matched = true;
 		
 					  // -- looking into JER information.
@@ -1084,15 +694,15 @@ cout << "Variable bins done" << endl;
 					      hJER_per_eDet_none_det	->Fill( det_energy, JER_eDet);
 					    }
 
-					  }
+					  } // No matched pairs yet.
 					  matched_pairs++;
 
 					  break; // End loop over gen jets.
-					  //}// Loop gen jets.
+
 					  if( !matched ){ // Det jet is a fake.
                                             response.Fake( det_energy );
                                             hCastorJet_energy_fakes->Fill( det_energy);
-                                            good_castorJets.erase( good_castorJets.begin() +  0 );
+                                            CastorJets->erase( CastorJets->begin() +  0 );
 					  }
 					} // While loop.
 					//} // For loop over det jets.
@@ -1100,40 +710,31 @@ cout << "Variable bins done" << endl;
 					hMatched->Fill( matched_pairs );
 					
 					/* Fakes */
-					for( int i_det = 0; i_det < good_castorJets.size(); i_det++){
-					  MyCastorJet castorjet = (good_castorJets)[i_det];
+					for( int i_det = 0; i_det < CastorJets->size(); i_det++){
+					  MyCastorJet castorjet = (*CastorJets)[i_det];
 					  double det_energy = castorjet.energy;
 					  response.Fake( det_energy );
                                           hCastorJet_energy_fakes->Fill( det_energy, -50.);
 					}
 
                                         /* Misses */
-                                        for( int i_gen = 0; i_gen < good_genJets.size(); i_gen++){
-					  MyGenJet genjet_castor = (good_genJets)[i_gen];
+                                        for( int i_gen = 0; i_gen < CastorGenJets->size(); i_gen++){
+					  MyGenJet genjet_castor = (*CastorGenJets)[i_gen];
                                           double gen_energy = genjet_castor.Energy();
                                           response.Miss( gen_energy );
                                           hCastorJet_energy_misses->Fill( -50., gen_energy);
                                         }
 						
 					// end of event, print status
-					if( ((i+1) % 10000) == 0) std::cout << i+1 <<"events done in file " << it << std::endl;
+					if( ((counter_events + 1) % 10000) == 0) std::cout << counter_events+1 <<"events done in file " << std::endl;
 					totalevents++;
 					
-				} // end if statement for 1 vertex
-								
-			} // end if passed detector cuts
-			
-			// combined hadron and detector level code
-			
-			if (passedHadronCuts && passedDetectorCuts) {
-			}
+
 			
 		} // end event loop
 		
-		delete tree;
-		currentTFile_->Close();
-		it++;
-	} // end file loop
+		//delete tree;
+	//} // end file loop
 	
 	std::cout << "file loop has ended" << std::endl;
     
@@ -1177,15 +778,12 @@ cout << "Variable bins done" << endl;
 	
 	// create output root file
 	Char_t filename[200];
-	const char* part = currentfile_.Data();
 	std::string first(outputname_);
-        float etamargin = GenJetContained;         
+       float etamargin = GenJetContained;         
 	//TString datestring = date;
 
-	first += part;
-	//strcat(temp,part);
-        if( !isData_) { sprintf(filename, date_ +"_Output_JetAnalyzer_radii_GEN_" + string_gen_radius + "_DET_" + string_det_radius + "_margin_%f_%i_%s", etamargin, counter_events, first.c_str()); }
-        else{ sprintf(filename, date_ + "_Output_JetAnalyzer_radii_Data_" + string_det_radius + "_margin_%f_%i_%s", etamargin, counter_events, first.c_str()); }
+        if( !isData_) { sprintf(filename, date_ +"_Output_JetAnalyzer_radii_strippedTree_GEN_" + string_gen_radius + "_DET_" + string_det_radius + "_margin_%f_%i_%s.root", etamargin, counter_events, first.c_str()); }
+        else{ sprintf(filename, date_ + "_Output_JetAnalyzer_radii_strippedTree_Data_" + string_det_radius + "_margin_%f_%i_%s.root", etamargin, counter_events, first.c_str()); }
 	TFile* output = new TFile(filename,"RECREATE");
 	output->cd();
 		
@@ -1337,11 +935,11 @@ cout << "Variable bins done" << endl;
 	std::cout << "file " << filename << " created." << std::endl;
  LoopOutputFile_ = filename;
         cout << totalevents << "\tevents" << endl;
-	cout << counter_jer << "\tJER events" << endl;
+	cout << counter_match << "\tmatched events" << endl;
 
 }
 	
-void JetAnalyzer_radii::AfterLoopCalculations(TString file) {
+void JetAnalyzer_radii_strippedTree::AfterLoopCalculations(TString file) {
 
 	///////////////////////////////////////////////////////
 	// perform calculations after event by event filling //
@@ -1393,28 +991,28 @@ void JetAnalyzer_radii::AfterLoopCalculations(TString file) {
 	
 }
 
-TString JetAnalyzer_radii::getOutputFile() {
+TString JetAnalyzer_radii_strippedTree::getOutputFile() {
     return LoopOutputFile_;
 }
 
-TString JetAnalyzer_radii::getInputDir() {
+TString JetAnalyzer_radii_strippedTree::getInputDir() {
 	return inputdir_;
 }
 
-TString JetAnalyzer_radii::getCurrentFile() {
+TString JetAnalyzer_radii_strippedTree::getCurrentFile() {
 	return currentfile_;
 }
 
-void JetAnalyzer_radii::setCurrentTFile() {
+void JetAnalyzer_radii_strippedTree::setCurrentTFile() {
 	currentTFile_ = currentStaticTFile_;
 }
 
-void* JetAnalyzer_radii::OpenROOTFile(JetAnalyzer_radii* arg) {
+void* JetAnalyzer_radii_strippedTree::OpenROOTFile(JetAnalyzer_radii_strippedTree* arg) {
 	currentStaticTFile_ = TFile::Open(arg->getInputDir()+arg->getCurrentFile(),"READ");
 	return 0;
 }
 
-int JetAnalyzer_radii::posLeadingGenJet(std::vector<MyGenJet> JetVector,double etacut,double minptcut) {
+int JetAnalyzer_radii_strippedTree::posLeadingGenJet(std::vector<MyGenJet> JetVector,double etacut,double minptcut) {
 	
 	// search for leading jets
 	int posLeadingChargedGenJet = -1;
@@ -1432,7 +1030,7 @@ int JetAnalyzer_radii::posLeadingGenJet(std::vector<MyGenJet> JetVector,double e
 	return posLeadingChargedGenJet;
 }
 
-int JetAnalyzer_radii::posLeadingTrackJet(std::vector<MyTrackJet> JetVector,double etacut,double minptcut) {
+int JetAnalyzer_radii_strippedTree::posLeadingTrackJet(std::vector<MyTrackJet> JetVector,double etacut,double minptcut) {
 	
 	// search for leading jets
 	int posLeadingTrackJetresult = -1;
